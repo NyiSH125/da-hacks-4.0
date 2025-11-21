@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeLink · Match by Vibe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="home">
+    <header class="site-nav">
+      <a class="logo" href="index.html">VibeLink</a>
+      <nav class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="category.html?category=Education">Categories</a>
+      </nav>
+      <a class="btn btn-primary" href="profile.html">Update profile</a>
+    </header>
+
+    <main>
+      <section class="hero hero--split">
+        <div class="hero__content">
+          <p class="eyebrow">AI-powered matching</p>
+          <h1>Pick your vibe. VibeLink handles the intros.</h1>
+          <p class="lede">
+            Choose your categories, lock in personality tags, then hop into a category
+            page to generate matches curated for study buddies, pick-up squads, gaming
+            stacks, or future roommates.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn-primary" href="profile.html">Set up profile</a>
+            <a class="btn btn-ghost" href="#categorySelector">Choose categories</a>
+          </div>
+          <ul class="hero__tags">
+            <li>Study pods</li>
+            <li>Pick-up games</li>
+            <li>Ranked queues</li>
+            <li>Roommate radar</li>
+          </ul>
+        </div>
+        <div class="hero__cards">
+          <article>
+            <p class="label">Categories live</p>
+            <h3>4</h3>
+            <p>Education · Sports · Gaming · Roommates</p>
+          </article>
+          <article>
+            <p class="label">Active invites</p>
+            <h3>38</h3>
+            <p>Micro-communities forming this week</p>
+          </article>
+          <article>
+            <p class="label">Avg. compatibility</p>
+            <h3>90%</h3>
+            <p>Weighted by tags, preferences, timing</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="card-section" id="categorySelector">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Select arenas</p>
+            <h2>Pick the places you want to vibe</h2>
+            <p>
+              Toggle multiple categories. When you’re ready, jump into the category
+              page to fine-tune preferences and generate matches.
+            </p>
+          </div>
+          <div>
+            <p class="muted">Selected categories</p>
+            <div id="selectedCategories" class="chip-row chip-row--inline"></div>
+          </div>
+        </div>
+
+        <div class="category-grid">
+          <article class="category-card home-card" data-category-card="Education">
+            <div class="category-card__header">
+              <p class="eyebrow">Education</p>
+              <label class="chip chip--toggle">
+                <input type="checkbox" />
+                <span>Follow</span>
+              </label>
+            </div>
+            <h3>Study Buddies &amp; Class Crews</h3>
+            <p>
+              Match by major, study cadence, accountability style, and availability.
+            </p>
+            <ul class="detail-list">
+              <li>Pomodoro, collaborative, or quiet focused</li>
+              <li>Night-owl vs. early riser pods</li>
+              <li>Course-based invites</li>
+            </ul>
+            <a class="btn btn-ghost" data-category-link="Education" href="category.html?category=Education">
+              Open Education page
+            </a>
+          </article>
+
+          <article class="category-card home-card" data-category-card="Sports">
+            <div class="category-card__header">
+              <p class="eyebrow">Sports</p>
+              <label class="chip chip--toggle">
+                <input type="checkbox" />
+                <span>Follow</span>
+              </label>
+            </div>
+            <h3>Pickup &amp; Team Play</h3>
+            <p>Filter by sport, intensity, frequency, and home court.</p>
+            <ul class="detail-list">
+              <li>Volleyball, soccer, hoops, running, gym</li>
+              <li>Role-based matching (setter, striker, etc.)</li>
+              <li>Location-aware pods</li>
+            </ul>
+            <a class="btn btn-ghost" data-category-link="Sports" href="category.html?category=Sports">
+              Open Sports page
+            </a>
+          </article>
+
+          <article class="category-card home-card" data-category-card="Gaming">
+            <div class="category-card__header">
+              <p class="eyebrow">Gaming</p>
+              <label class="chip chip--toggle">
+                <input type="checkbox" />
+                <span>Follow</span>
+              </label>
+            </div>
+            <h3>Ranked Queues &amp; Cozy Lobbies</h3>
+            <p>Dial-in by title, rank, platform, playstyle, and comms.</p>
+            <ul class="detail-list">
+              <li>Valorant, LoL, Fortnite, Switch &amp; PC co-op</li>
+              <li>Tilt-free, tactical, or casual vibes</li>
+              <li>AI-suggested conversation starters</li>
+            </ul>
+            <a class="btn btn-ghost" data-category-link="Gaming" href="category.html?category=Gaming">
+              Open Gaming page
+            </a>
+          </article>
+
+          <article class="category-card home-card" data-category-card="Roommates">
+            <div class="category-card__header">
+              <p class="eyebrow">Roommates</p>
+              <label class="chip chip--toggle">
+                <input type="checkbox" />
+                <span>Follow</span>
+              </label>
+            </div>
+            <h3>Compatible Living Situations</h3>
+            <p>Align on cleanliness, schedules, hobbies, and house rules.</p>
+            <ul class="detail-list">
+              <li>Morning tea vs. night shift coders</li>
+              <li>Plant parents &amp; mindful roommates</li>
+              <li>Budget + utilities snapshot</li>
+            </ul>
+            <a class="btn btn-ghost" data-category-link="Roommates" href="category.html?category=Roommates">
+              Open Roommates page
+            </a>
+          </article>
+        </div>
+      </section>
+
+      <section class="card-section alt">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Flow</p>
+            <h2>How the multi-page experience works</h2>
+            <p>Everything is lightweight, stores in your browser, and ready for demos.</p>
+          </div>
+        </div>
+        <div class="flow-steps">
+          <article>
+            <span>01</span>
+            <h4>Profile page</h4>
+            <p>Pin About-Me and Looking-For tags. Save anytime.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h4>Home page</h4>
+            <p>Select categories to follow and preview what’s inside.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h4>Category page</h4>
+            <p>
+              Pick a dropdown preference (volleyball, soccer, Valorant, quiet mornings…)
+              and generate matches for that vibe.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>VibeLink Web MVP · v0.3 · Built for DaHacks4</p>
+      <div class="footer-links">
+        <a href="profile.html">Profile builder</a>
+        <a href="category.html?category=Education">Category flow</a>
+        <a href="mailto:team@vibelink.io">Contact</a>
+      </div>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
+

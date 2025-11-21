@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeLink · Category</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="category">
+    <header class="site-nav">
+      <a class="logo" href="index.html">VibeLink</a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="category.html?category=Education" class="active">Categories</a>
+      </nav>
+      <a class="btn btn-ghost" href="index.html">Choose another category</a>
+    </header>
+
+    <main>
+      <section class="card-section">
+        <div class="section-heading category-heading">
+          <div>
+            <p class="eyebrow" id="categoryEyebrow">Category</p>
+            <h1 id="categoryTitle">Category name</h1>
+            <p id="categoryDescription">
+              Pick a preference from the dropdown. Matches blend your saved profile tags
+              with this page’s context.
+            </p>
+          </div>
+          <div class="category-preferences">
+            <label>
+              <span id="preferenceLabel">Preference</span>
+              <select id="preferenceSelect"></select>
+            </label>
+            <button class="btn btn-primary" id="generateMatchesBtn">Generate matches</button>
+            <p class="status" id="categoryStatus" role="status"></p>
+          </div>
+        </div>
+
+        <div id="categoryMatches" class="match-list"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p><a href="profile.html">Update tags</a> to change scoring inputs.</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="category.html?category=Gaming">Gaming</a>
+        <a href="category.html?category=Roommates">Roommates</a>
+      </div>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeLink — Category Preferences</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="category">
+    <header class="site-header">
+      <div class="brand">
+        <a href="index.html">VibeLink</a>
+        <span class="badge">v0.2</span>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="category.html?category=Education" class="active">Categories</a>
+      </nav>
+      <a class="btn btn-inline" href="profile.html">Refresh profile</a>
+    </header>
+
+    <main>
+      <section class="hero hero--category">
+        <div class="hero__content">
+          <p class="eyebrow" id="categoryEyebrow">Category</p>
+          <h1 id="categoryTitle">Category preferences</h1>
+          <p class="lede" id="categorySummary">
+            Choose a category from the home page to load its preferences.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn-primary" href="#categoryForm">Edit preferences</a>
+            <a class="btn btn-ghost" href="index.html">Change categories</a>
+          </div>
+        </div>
+        <div class="hero__cards" id="categoryHighlights"></div>
+      </section>
+
+      <section class="card-section" id="preferencesSection">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 · Preference inputs</p>
+            <h2 id="preferenceHeading">Select dropdown options &amp; notes.</h2>
+            <p id="preferenceCopy">
+              We’ll save these locally so you can regenerate matches any time.
+            </p>
+          </div>
+        </div>
+
+        <form id="categoryForm">
+          <div id="preferenceFields" class="form-grid"></div>
+          <label class="full">
+            Additional notes (optional)
+            <textarea
+              id="categoryNotes"
+              placeholder="Share deal-makers, schedules, or quick context."
+              rows="3"
+            ></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Generate matches</button>
+            <button type="button" class="btn btn-ghost" id="resetCategory">Reset preferences</button>
+            <a class="btn btn-inline" href="index.html">Back home</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="card-section" id="matchSection">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">02 · Matches</p>
+            <h2>AI-suggested groups</h2>
+            <p>Results blend your profile tags with the dropdown selections above.</p>
+          </div>
+          <div class="summary-card">
+            <p>Reminders</p>
+            <ul>
+              <li>Profile tags fuel compatibility</li>
+              <li>Dropdowns boost preference alignment</li>
+              <li>Selections persist per category</li>
+            </ul>
+          </div>
+        </div>
+        <div id="matchList" class="match-list">
+          <div class="empty-state">
+            <h3>No matches yet</h3>
+            <p>Adjust your dropdowns and press “Generate matches”.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>VibeLink Web MVP · v0.2 · Built for DaHacks4</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+      </div>
+    </footer>
+
+    <script type="module" src="scripts/category.js"></script>
+  </body>
+</html>
+
