@@ -717,6 +717,7 @@ async function handleProfileSave(event) {
     displayName: getValue("displayName"),
     city: getValue("city"),
     photo: getValue("photo"),
+    profilePicUrl: getValue("photo") || currentProfile.profilePicUrl || null, // Map photo to profilePicUrl
     bio: getValue("bio"),
     naturalLanguagePreferences: getValue("naturalLanguagePreferences"),
     aboutTags: Array.from(tagState.about.values()),
@@ -1132,43 +1133,34 @@ async function renderDiscoverMatches(topic) {
     aiMatches = [];
   }
 
-  // Step 3: Get static library matches (only if no real users found)
+  // Step 3: Get static library matches (always include if they have similarity)
+  // Filter library matches to only show those with decent compatibility
   let libraryMatches = [];
-  if (realUserMatches.length === 0) {
-    libraryMatches = MATCH_LIBRARY.filter((match) => match.topic === topic).map((match) => {
-      const score = calculateScore(match, profile, preferenceTokens);
-      return { ...match, score, isHardCoded: true }; // Mark as hard-coded
-    });
-    console.log(`📚 Found ${libraryMatches.length} library matches (hard-coded)`);
-  } else {
-    console.log("✅ Real users found - skipping hard-coded library matches");
-  }
-
-  // Combine matches: REAL USERS FIRST (always prioritize), then AI, then library only if no real users
-  const combinedMatches = [...realUserMatches, ...aiMatches, ...libraryMatches];
-
-  // If no good real user matches (65%+ threshold), show AI bots as fallback
-  if (realUserMatches.length === 0 && combinedMatches.length === 0) {
-    // Fallback to AI bots if no compatible real users found
-    const botMatches = generateBotMatches(topic, profile, preferenceTokens);
-    if (botMatches.length) {
-      botMatches.forEach((match) => container.appendChild(buildMatchCard(match)));
-      setStatusMessage(
-        "discoverStatus",
-        "No compatible users found (need 65%+ similarity). Here are AI buddy groups to get started!"
-      );
-    } else {
-      container.appendChild(buildEmptyState("No matches yet", "Try different preferences or update your profile tags."));
-      setStatusMessage("discoverStatus", "No matches found. Update your profile to find better matches.");
-    }
-    return;
-  }
+  const libraryCandidates = MATCH_LIBRARY.filter((match) => match.topic === topic).map((match) => {
+    const score = calculateScore(match, profile, preferenceTokens);
+    return { ...match, score, isHardCoded: true };
+  }).filter(match => match.score >= 50); // Only show library matches with 50%+ similarity
   
-  // If we have real users but they're low quality (<70%), also show bots as options
-  if (realUserMatches.length > 0 && realUserMatches.every(m => m.score < 70)) {
-    const botMatches = generateBotMatches(topic, profile, preferenceTokens);
-    combinedMatches.push(...botMatches);
-    setStatusMessage("discoverStatus", `Found ${realUserMatches.length} user${realUserMatches.length > 1 ? 's' : ''} with some compatibility. AI bots also available.`);
+  if (libraryCandidates.length > 0) {
+    libraryMatches = libraryCandidates;
+    console.log(`📚 Found ${libraryMatches.length} library matches with similarity`);
+  }
+
+  // Step 4: Add AI bots if they have similarity (always include bots with decent scores)
+  const botMatches = generateBotMatches(topic, profile, preferenceTokens);
+  // Filter bots to only show those with 50%+ similarity
+  const compatibleBots = botMatches.filter(bot => bot.score >= 50);
+  
+  // Combine ALL matches: real users, AI-generated, library, and bots (all with similarity)
+  const combinedMatches = [...realUserMatches, ...aiMatches, ...libraryMatches, ...compatibleBots];
+  
+  console.log(`📊 Combined matches: ${realUserMatches.length} real users, ${aiMatches.length} AI-generated, ${libraryMatches.length} library, ${compatibleBots.length} bots`);
+  
+  // If no matches at all (all filtered out), show message
+  if (combinedMatches.length === 0) {
+    container.appendChild(buildEmptyState("No matches yet", "Try different preferences or update your profile tags."));
+    setStatusMessage("discoverStatus", "No compatible matches found (need 50%+ similarity). Update your profile to find better matches.");
+    return;
   }
 
   // Sort by score and render
@@ -1178,13 +1170,27 @@ async function renderDiscoverMatches(topic) {
 
   const matchCount = combinedMatches.length;
   const realUserCount = realUserMatches.length;
+  const botCount = combinedMatches.filter(m => m.id?.startsWith('bot-')).length;
   const hardCodedCount = combinedMatches.filter(m => m.isHardCoded).length;
+  const aiGeneratedCount = aiMatches.length;
   
+  // Build status message showing variety of matches
   let statusMsg = `Showing ${matchCount} match${matchCount > 1 ? "es" : ""}`;
+  const parts = [];
   if (realUserCount > 0) {
-    statusMsg += ` (${realUserCount} real user${realUserCount > 1 ? "s" : ""})`;
-  } else if (hardCodedCount > 0) {
-    statusMsg += ` (${hardCodedCount} sample match${hardCodedCount > 1 ? "es" : ""} - no real users found yet)`;
+    parts.push(`${realUserCount} real user${realUserCount > 1 ? "s" : ""}`);
+  }
+  if (aiGeneratedCount > 0) {
+    parts.push(`${aiGeneratedCount} AI-generated`);
+  }
+  if (botCount > 0) {
+    parts.push(`${botCount} AI bot${botCount > 1 ? "s" : ""}`);
+  }
+  if (hardCodedCount > 0) {
+    parts.push(`${hardCodedCount} sample${hardCodedCount > 1 ? "s" : ""}`);
+  }
+  if (parts.length > 0) {
+    statusMsg += ` (${parts.join(", ")})`;
   }
   setStatusMessage("discoverStatus", statusMsg);
 }
@@ -1836,10 +1842,10 @@ async function renderNetworkList() {
   });
   if (!currentChatId) {
     currentChatId = matches[0].id;
-    renderNetworkWindow(matches[0]);
+    await renderNetworkWindow(matches[0]);
   } else {
     const active = matches.find((m) => m.id === currentChatId);
-    if (active) renderNetworkWindow(active);
+    if (active) await renderNetworkWindow(active);
   }
 }
 
@@ -1870,7 +1876,7 @@ function renderNetworkWindow(match) {
       ${match.conversationStarters.map((starter) => `<button type="button" data-convo="${starter}">${starter}</button>`).join("")}
     </div>
     <div class="messages" id="messageThread">
-      ${match.messages.map((msg) => buildMessageBubble(msg)).join("")}
+      ${messagesHtml}
     </div>
     <div id="typingIndicator" style="display: none;" class="message typing">
       <strong id="typingAuthor">Someone</strong>
@@ -1914,10 +1920,12 @@ function renderNetworkWindow(match) {
     // Show user message immediately by appending to DOM
     const messageThread = document.getElementById("messageThread");
     if (messageThread) {
-      const userBubble = buildMessageBubble({
+      const userBubble = await buildMessageBubble({
         author: profile.displayName || "You",
+        authorId: currentUser?.uid || null,
         role: "me",
         text: userMessage,
+        profilePicUrl: profile.profilePicUrl || null,
       });
       messageThread.insertAdjacentHTML("beforeend", userBubble);
       // Scroll to bottom with a slight delay to ensure DOM is updated
@@ -1930,7 +1938,21 @@ function renderNetworkWindow(match) {
     input.disabled = false;
     input.focus();
     
-    // Show typing indicator BELOW the user message
+    // Check if this is a real user match (has userIds) - if so, don't auto-respond
+    // Only AI bots should auto-respond
+    const isRealUserMatch = match.userIds && match.userIds.length > 0;
+    const isBotMatch = match.id?.startsWith('bot-') || !isRealUserMatch;
+    
+    if (!isBotMatch) {
+      // Real user match - don't auto-respond, just wait for real messages via Firestore listener
+      console.log("💬 Real user match - waiting for real user response (no auto-reply)");
+      input.disabled = false;
+      input.focus();
+      renderNetworkList();
+      return; // Exit early - no AI response for real users
+    }
+    
+    // Only for bot matches: Show typing indicator and generate AI response
     const typingIndicator = document.getElementById("typingIndicator");
     const typingAuthor = document.getElementById("typingAuthor");
     const respondingMember = match.members[0] || "Group Member";
@@ -1946,7 +1968,7 @@ function renderNetworkWindow(match) {
       }
     }
     
-    // Generate AI response if AI is enabled
+    // Generate AI response ONLY for bot matches
     const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
     if (AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl)) {
       try {
@@ -2007,7 +2029,7 @@ Your response:`;
           
           // Append response to DOM immediately (below typing indicator)
           if (messageThread) {
-            const responseBubble = buildMessageBubble({
+            const responseBubble = await buildMessageBubble({
               author: aiAuthor,
               role: "them",
               text: aiResponse.trim(),
@@ -2029,7 +2051,7 @@ Your response:`;
           });
           
           if (messageThread) {
-            const responseBubble = buildMessageBubble({
+            const responseBubble = await buildMessageBubble({
               author: match.members[0] || "Group Member",
               role: "them",
               text: fallbackResponse,
@@ -2059,7 +2081,7 @@ Your response:`;
         });
         
         if (messageThread) {
-          const responseBubble = buildMessageBubble({
+          const responseBubble = await buildMessageBubble({
             author: match.members[0] || "Group Member",
             role: "them",
             text: fallbackResponse,
@@ -2085,7 +2107,7 @@ Your response:`;
       });
       
       if (messageThread) {
-        const responseBubble = buildMessageBubble({
+        const responseBubble = await buildMessageBubble({
           author: match.members[0] || "Group Member",
           role: "them",
           text: fallbackResponse,
@@ -2107,24 +2129,61 @@ Your response:`;
   messageThread.scrollTop = messageThread.scrollHeight;
 }
 
-function buildMessageBubble(message) {
+async function buildMessageBubble(message) {
   const isMe = message.role === "me";
   const author = isMe ? "You" : message.author;
+  
+  // Get profile picture if available
+  let profilePicHtml = "";
+  if (message.profilePicUrl) {
+    profilePicHtml = `<img src="${message.profilePicUrl}" alt="${author}" class="message-avatar" onerror="this.style.display='none'">`;
+  } else if (message.authorId && FIREBASE_ENABLED && firestoreDb) {
+    // Try to fetch profile picture from Firebase user profile
+    try {
+      const userDoc = await firestoreDb.collection("users").doc(message.authorId).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        if (userData.profilePicUrl) {
+          profilePicHtml = `<img src="${userData.profilePicUrl}" alt="${author}" class="message-avatar" onerror="this.style.display='none'">`;
+        }
+      }
+    } catch (error) {
+      console.warn("Could not fetch profile picture:", error);
+    }
+  }
+  
+  // If no profile pic, show initial
+  if (!profilePicHtml) {
+    const initial = author.charAt(0).toUpperCase();
+    profilePicHtml = `<div class="message-avatar-initial">${initial}</div>`;
+  }
+  
   return `
     <div class="message ${isMe ? "me" : ""}">
-      <strong>${author}</strong>
-      <p>${message.text}</p>
+      ${!isMe ? profilePicHtml : ""}
+      <div class="message-content">
+        <strong>${author}</strong>
+        <p>${message.text}</p>
+      </div>
+      ${isMe ? profilePicHtml : ""}
     </div>
   `;
 }
 
 async function appendMessage(matchId, message) {
+  // Get current user's profile to include profile picture
+  const profile = await loadProfile();
+  const messageWithPic = {
+    ...message,
+    profilePicUrl: message.profilePicUrl || profile.profilePicUrl || null,
+  };
+  
   // Save to Firestore if it's a real match group
   if (FIREBASE_ENABLED && firestoreDb && matchId.startsWith("match-")) {
     try {
       const firestoreMatchId = matchId.replace("match-", "");
       await firestoreDb.collection("matches").doc(firestoreMatchId).collection("messages").add({
-        ...message,
+        ...messageWithPic,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       });
       // Update match's updatedAt
@@ -2152,11 +2211,12 @@ async function appendMessage(matchId, message) {
   
   await saveMatches(matches);
   
-  // Update UI if this match is currently displayed
-  if (window.currentChatId === matchId) {
+  // Update UI if this match is currently displayed (only for non-Firestore matches)
+  // Firestore matches are handled by the real-time listener
+  if (window.currentChatId === matchId && !(FIREBASE_ENABLED && firestoreDb && matchId.startsWith("match-"))) {
     const messageThread = document.getElementById("messageThread");
     if (messageThread) {
-      const messageBubble = buildMessageBubble(message);
+      const messageBubble = await buildMessageBubble(messageWithPic);
       messageThread.insertAdjacentHTML("beforeend", messageBubble);
       setTimeout(() => {
         messageThread.scrollTop = messageThread.scrollHeight;
@@ -2437,16 +2497,18 @@ async function findRealUserMatches(topic, userProfile, preferenceTokens = []) {
       console.log("⚠️ AI not available - using basic tag-based matching");
     }
     
-    // Process candidates (limit to top 10 for AI to avoid rate limits)
-    const candidatesToProcess = candidates.slice(0, useAI ? 10 : 20);
-    
-    for (const candidate of candidatesToProcess) {
+    // Process ALL candidates with basic scoring first
+    // Then enhance top candidates with AI (to avoid rate limits)
+    for (const candidate of candidates) {
       const { doc, otherUser, otherTags, tagOverlap, baseScore } = candidate;
       let finalScore = baseScore;
       let aiInsights = null;
       
-      // Try AI scoring if available
-      if (useAI) {
+      // Try AI scoring only for top candidates (to avoid rate limits)
+      // But still show all users with basic scores
+      const isTopCandidate = candidates.indexOf(candidate) < 10; // Top 10 get AI enhancement
+      
+      if (useAI && isTopCandidate) {
         try {
           console.log(`🤖 AI analyzing: ${otherUser.displayName || otherUser.email}`);
           aiInsights = await aiService.generateMatchScore(userProfile, {
@@ -2487,11 +2549,15 @@ async function findRealUserMatches(topic, userProfile, preferenceTokens = []) {
           }
           // Continue with basic score
         }
+      } else if (useAI && !isTopCandidate) {
+        // For non-top candidates, just use basic score (AI enhancement skipped to avoid rate limits)
+        console.log(`📊 Using basic score for: ${otherUser.displayName || otherUser.email} (not in top 10 for AI)`);
       }
       
-      // Only show matches with meaningful similarity
-      // Higher threshold: 65% minimum for real users (very different users shouldn't show)
-      if (finalScore >= 65) {
+      // Show all users with ANY similarity (even if not perfect)
+      // Only filter out truly incompatible users (very low scores, opposite interests)
+      // Lower threshold: 50% minimum - this allows showing various similarity levels
+      if (finalScore >= 50) {
         console.log(`✅ Adding match: ${otherUser.displayName || otherUser.email} (score: ${finalScore})`);
         potentialMatches.push({
           id: `user-${doc.id}`,
