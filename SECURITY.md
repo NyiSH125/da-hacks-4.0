@@ -27,9 +27,10 @@ Your API key is currently **NOT hardcoded** (removed for security). You have two
 
 2. **Create `.env` file:**
    ```bash
-   GEMINI_API_KEY=AIzaSyAu-2PAztOQyFQ4P7sCANcJAg0eczgv6v4
+   GEMINI_API_KEY=your-api-key-here
    PORT=3001
    ```
+   **Important:** Replace `your-api-key-here` with your own Google Gemini API key!
 
 3. **Start the proxy server:**
    ```bash
