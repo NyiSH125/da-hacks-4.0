@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+`<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -18,189 +18,137 @@
       <nav class="nav-links">
         <a href="index.html" class="active">Home</a>
         <a href="profile.html">Profile</a>
-        <a href="category.html?category=Education">Categories</a>
+        <a href="discover.html?topic=Sports">Discover</a>
+        <a href="network.html">Network</a>
       </nav>
-      <a class="btn btn-primary" href="profile.html">Update profile</a>
+      <a class="btn btn-primary" href="discover.html?topic=Education">Start matching</a>
     </header>
 
     <main>
-      <section class="hero hero--split">
+      <section class="hero hero--home">
         <div class="hero__content">
-          <p class="eyebrow">AI-powered matching</p>
-          <h1>Pick your vibe. VibeLink handles the intros.</h1>
+          <p class="eyebrow">Match &amp; Meet</p>
+          <h1>Find your type of people and get matched.</h1>
           <p class="lede">
-            Choose your categories, lock in personality tags, then hop into a category
-            page to generate matches curated for study buddies, pick-up squads, gaming
-            stacks, or future roommates.
+            Tell VibeLink what you love, then explore tailored discover pages for
+            school, sports, gaming, travel, and more. When you save an invite, it
+            instantly unlocks in Network chat.
           </p>
           <div class="hero__actions">
-            <a class="btn btn-primary" href="profile.html">Set up profile</a>
-            <a class="btn btn-ghost" href="#categorySelector">Choose categories</a>
+            <a class="btn btn-primary" href="profile.html">Update profile</a>
+            <a class="btn btn-ghost" href="network.html">Open chats</a>
           </div>
-          <ul class="hero__tags">
-            <li>Study pods</li>
-            <li>Pick-up games</li>
-            <li>Ranked queues</li>
-            <li>Roommate radar</li>
-          </ul>
         </div>
-        <div class="hero__cards">
-          <article>
-            <p class="label">Categories live</p>
-            <h3>4</h3>
-            <p>Education · Sports · Gaming · Roommates</p>
-          </article>
-          <article>
-            <p class="label">Active invites</p>
-            <h3>38</h3>
-            <p>Micro-communities forming this week</p>
-          </article>
-          <article>
-            <p class="label">Avg. compatibility</p>
-            <h3>90%</h3>
-            <p>Weighted by tags, preferences, timing</p>
-          </article>
+        <div class="hero__panel">
+          <div>
+            <span>4.8★</span>
+            <p>Avg. vibe rating</p>
+          </div>
+          <div>
+            <span>68</span>
+            <p>Live group chats</p>
+          </div>
+          <div>
+            <span>92%</span>
+            <p>Match satisfaction</p>
+          </div>
         </div>
       </section>
 
-      <section class="card-section" id="categorySelector">
+      <section class="card-section interest">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Select arenas</p>
-            <h2>Pick the places you want to vibe</h2>
-            <p>
-              Toggle multiple categories. When you’re ready, jump into the category
-              page to fine-tune preferences and generate matches.
-            </p>
-          </div>
-          <div>
-            <p class="muted">Selected categories</p>
-            <div id="selectedCategories" class="chip-row chip-row--inline"></div>
+            <p class="eyebrow">Choose a lane</p>
+            <h2>What are you interested in?</h2>
+            <p>Tap a topic to jump straight into a tailored discover page.</p>
           </div>
         </div>
-
-        <div class="category-grid">
-          <article class="category-card home-card" data-category-card="Education">
-            <div class="category-card__header">
-              <p class="eyebrow">Education</p>
-              <label class="chip chip--toggle">
-                <input type="checkbox" />
-                <span>Follow</span>
-              </label>
-            </div>
-            <h3>Study Buddies &amp; Class Crews</h3>
-            <p>
-              Match by major, study cadence, accountability style, and availability.
-            </p>
-            <ul class="detail-list">
-              <li>Pomodoro, collaborative, or quiet focused</li>
-              <li>Night-owl vs. early riser pods</li>
-              <li>Course-based invites</li>
-            </ul>
-            <a class="btn btn-ghost" data-category-link="Education" href="category.html?category=Education">
-              Open Education page
-            </a>
-          </article>
-
-          <article class="category-card home-card" data-category-card="Sports">
-            <div class="category-card__header">
-              <p class="eyebrow">Sports</p>
-              <label class="chip chip--toggle">
-                <input type="checkbox" />
-                <span>Follow</span>
-              </label>
-            </div>
-            <h3>Pickup &amp; Team Play</h3>
-            <p>Filter by sport, intensity, frequency, and home court.</p>
-            <ul class="detail-list">
-              <li>Volleyball, soccer, hoops, running, gym</li>
-              <li>Role-based matching (setter, striker, etc.)</li>
-              <li>Location-aware pods</li>
-            </ul>
-            <a class="btn btn-ghost" data-category-link="Sports" href="category.html?category=Sports">
-              Open Sports page
-            </a>
-          </article>
-
-          <article class="category-card home-card" data-category-card="Gaming">
-            <div class="category-card__header">
-              <p class="eyebrow">Gaming</p>
-              <label class="chip chip--toggle">
-                <input type="checkbox" />
-                <span>Follow</span>
-              </label>
-            </div>
-            <h3>Ranked Queues &amp; Cozy Lobbies</h3>
-            <p>Dial-in by title, rank, platform, playstyle, and comms.</p>
-            <ul class="detail-list">
-              <li>Valorant, LoL, Fortnite, Switch &amp; PC co-op</li>
-              <li>Tilt-free, tactical, or casual vibes</li>
-              <li>AI-suggested conversation starters</li>
-            </ul>
-            <a class="btn btn-ghost" data-category-link="Gaming" href="category.html?category=Gaming">
-              Open Gaming page
-            </a>
-          </article>
-
-          <article class="category-card home-card" data-category-card="Roommates">
-            <div class="category-card__header">
-              <p class="eyebrow">Roommates</p>
-              <label class="chip chip--toggle">
-                <input type="checkbox" />
-                <span>Follow</span>
-              </label>
-            </div>
-            <h3>Compatible Living Situations</h3>
-            <p>Align on cleanliness, schedules, hobbies, and house rules.</p>
-            <ul class="detail-list">
-              <li>Morning tea vs. night shift coders</li>
-              <li>Plant parents &amp; mindful roommates</li>
-              <li>Budget + utilities snapshot</li>
-            </ul>
-            <a class="btn btn-ghost" data-category-link="Roommates" href="category.html?category=Roommates">
-              Open Roommates page
-            </a>
-          </article>
+        <div class="interest-grid">
+          <a class="interest-card" href="discover.html?topic=Education">
+            <span class="interest-icon">🎓</span>
+            <strong>Education</strong>
+            <p>Study partners &amp; accountability</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Sports">
+            <span class="interest-icon">🏀</span>
+            <strong>Sports</strong>
+            <p>Pickup and league teammates</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Roommates">
+            <span class="interest-icon">🏡</span>
+            <strong>Roommates</strong>
+            <p>Find people who match your vibe</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Travel">
+            <span class="interest-icon">🧳</span>
+            <strong>Travel</strong>
+            <p>Weekend trips &amp; adventure buddies</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Friends">
+            <span class="interest-icon">🤝</span>
+            <strong>Friends</strong>
+            <p>Meet locals with shared interests</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Gaming">
+            <span class="interest-icon">🎮</span>
+            <strong>Gaming</strong>
+            <p>Ranked queues and cozy lobbies</p>
+          </a>
+          <a class="interest-card" href="discover.html?topic=Dating">
+            <span class="interest-icon">💛</span>
+            <strong>Dating</strong>
+            <p>Match by lifestyle &amp; values</p>
+          </a>
         </div>
       </section>
 
-      <section class="card-section alt">
+      <section class="card-section home-feed">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Flow</p>
-            <h2>How the multi-page experience works</h2>
-            <p>Everything is lightweight, stores in your browser, and ready for demos.</p>
+            <p class="eyebrow">Network preview</p>
+            <h2>Recommended people near you</h2>
+            <p>Based on recent profiles and saved tags.</p>
           </div>
         </div>
-        <div class="flow-steps">
-          <article>
-            <span>01</span>
-            <h4>Profile page</h4>
-            <p>Pin About-Me and Looking-For tags. Save anytime.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h4>Home page</h4>
-            <p>Select categories to follow and preview what’s inside.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h4>Category page</h4>
-            <p>
-              Pick a dropdown preference (volleyball, soccer, Valorant, quiet mornings…)
-              and generate matches for that vibe.
-            </p>
-          </article>
+        <ul class="feed-list">
+          <li>
+            <div class="avatar">A</div>
+            <div>
+              <strong>Allison</strong>
+              <p class="muted">introverted · sporty · cat person</p>
+            </div>
+            <a class="btn btn-inline" href="discover.html?topic=Friends">View profile</a>
+          </li>
+          <li>
+            <div class="avatar">J</div>
+            <div>
+              <strong>John Doe</strong>
+              <p class="muted">runner · design major · taco fan</p>
+            </div>
+            <a class="btn btn-inline" href="discover.html?topic=Education">View profile</a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="card-section chat-cta">
+        <div>
+          <p class="eyebrow">Group chats</p>
+          <h2>Already matched? Jump into Network and start talking.</h2>
+          <p>
+            Saved invites instantly become chat rooms so you can coordinate meetups,
+            scrims, or study sessions without leaving VibeLink.
+          </p>
         </div>
+        <a class="btn btn-primary" href="network.html">Open Network</a>
       </section>
     </main>
 
     <footer>
-      <p>VibeLink Web MVP · v0.3 · Built for DaHacks4</p>
+      <p>VibeLink Web MVP · v0.4 · Built for DaHacks4</p>
       <div class="footer-links">
-        <a href="profile.html">Profile builder</a>
-        <a href="category.html?category=Education">Category flow</a>
-        <a href="mailto:team@vibelink.io">Contact</a>
+        <a href="profile.html">Profile</a>
+        <a href="discover.html?topic=Travel">Discover</a>
+        <a href="network.html">Network</a>
       </div>
     </footer>
 

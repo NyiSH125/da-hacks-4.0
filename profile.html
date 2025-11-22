@@ -18,7 +18,8 @@
       <nav class="nav-links">
         <a href="index.html">Home</a>
         <a href="profile.html" class="active">Profile</a>
-        <a href="category.html?category=Education">Categories</a>
+        <a href="discover.html?topic=Travel">Discover</a>
+        <a href="network.html">Network</a>
       </nav>
       <a class="btn btn-ghost" href="index.html">Back to home</a>
     </header>
@@ -120,161 +121,11 @@
       <p>Need to test a category? Head back to <a href="index.html">Home</a>.</p>
       <div class="footer-links">
         <a href="index.html">Main page</a>
-        <a href="category.html?category=Sports">Sports</a>
-        <a href="category.html?category=Roommates">Roommates</a>
+        <a href="discover.html?topic=Sports">Sports</a>
+        <a href="discover.html?topic=Roommates">Roommates</a>
       </div>
     </footer>
 
     <script src="app.js" defer></script>
   </body>
 </html>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VibeLink — Profile & Tag Editor</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body data-page="profile">
-    <header class="site-header">
-      <div class="brand">
-        <a href="index.html">VibeLink</a>
-        <span class="badge">v0.2</span>
-      </div>
-      <nav class="nav-links">
-        <a href="index.html">Home</a>
-        <a href="profile.html" class="active">Profile</a>
-        <a href="category.html?category=Education">Categories</a>
-      </nav>
-      <a class="btn btn-inline" href="category.html?category=Education">Open categories</a>
-    </header>
-
-    <main>
-      <section class="hero hero--slim">
-        <div class="hero__content">
-          <p class="eyebrow">Profile cockpit</p>
-          <h1>Update your baseline info and tag stacks.</h1>
-          <p class="lede">
-            Save a name, add a short bio, and curate both “About Me” and “Looking For”
-            tags. Every category page reads from this profile so you never need to fill
-            giant forms twice.
-          </p>
-          <div class="hero__actions">
-            <a class="btn btn-primary" href="#profileForm">Edit profile</a>
-            <a class="btn btn-ghost" href="index.html">Back to home</a>
-          </div>
-        </div>
-        <div class="hero__cards">
-          <article>
-            <p class="label">Saved tags</p>
-            <h3 id="tagCount">0</h3>
-            <p>Total About + Looking tags</p>
-          </article>
-          <article>
-            <p class="label">Last update</p>
-            <h3 id="lastSaved">—</h3>
-            <p>Stored locally on this device</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="card-section">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">01 · Basic info</p>
-            <h2>Keep it short, keep it you.</h2>
-            <p>These fields appear across match previews and category summaries.</p>
-          </div>
-        </div>
-
-        <form id="profileForm">
-          <div class="form-grid">
-            <label>
-              Full name
-              <input type="text" id="fullName" placeholder="Jordan Lee" />
-            </label>
-            <label>
-              Display name
-              <input type="text" id="displayName" placeholder="@jordanlearns" />
-            </label>
-            <label>
-              City / School
-              <input type="text" id="city" placeholder="Austin · UT Austin" />
-            </label>
-            <label>
-              Profile photo URL
-              <input type="url" id="photo" placeholder="https://images..." />
-            </label>
-          </div>
-
-          <label class="full">
-            Short bio
-            <textarea
-              id="bio"
-              placeholder="Hybrid builder who codes at night, runs at sunrise, and lives for co-op quests."
-              rows="3"
-            ></textarea>
-          </label>
-
-          <div class="tag-stack">
-            <div class="tag-panel" data-tag-type="about">
-              <div class="tag-panel__header">
-                <div>
-                  <h3>About-Me tags</h3>
-                  <p>Personality, habits, and energizers.</p>
-                </div>
-                <div class="tag-panel__input">
-                  <input type="text" placeholder="Add custom tag" data-tag-input="about" />
-                  <button type="button" class="btn btn-inline" data-add-tag="about">Add</button>
-                </div>
-              </div>
-              <div class="tag-panel__selected" data-selected-tags="about"></div>
-              <p class="tag-panel__hint">Tap suggestions or create your own descriptors.</p>
-              <div class="tag-panel__suggestions" data-tag-suggestions="about"></div>
-            </div>
-
-            <div class="tag-panel" data-tag-type="looking">
-              <div class="tag-panel__header">
-                <div>
-                  <h3>Looking-For tags</h3>
-                  <p>Describe dream teammates, roommates, or squads.</p>
-                </div>
-                <div class="tag-panel__input">
-                  <input type="text" placeholder="Add custom tag" data-tag-input="looking" />
-                  <button type="button" class="btn btn-inline" data-add-tag="looking">Add</button>
-                </div>
-              </div>
-              <div class="tag-panel__selected" data-selected-tags="looking"></div>
-              <p class="tag-panel__hint">Stack preferences, non-negotiables, or open invites.</p>
-              <div class="tag-panel__suggestions" data-tag-suggestions="looking"></div>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save profile</button>
-            <button type="button" class="btn btn-ghost" id="resetProfile">Reset fields</button>
-            <a class="btn btn-inline" href="index.html">Back home</a>
-          </div>
-        </form>
-      </section>
-    </main>
-
-    <footer>
-      <p>VibeLink Web MVP · v0.2 · Built for DaHacks4</p>
-      <div class="footer-links">
-        <a href="index.html">Home</a>
-        <a href="category.html?category=Education">Categories</a>
-      </div>
-    </footer>
-
-    <script type="module" src="scripts/profile.js"></script>
-  </body>
-</html>
-

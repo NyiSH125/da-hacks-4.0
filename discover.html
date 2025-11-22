@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeLink · Discover</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="discover">
+    <header class="site-nav">
+      <a class="logo" href="index.html">VibeLink</a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="discover.html?topic=Sports" class="active">Discover</a>
+        <a href="network.html">Network</a>
+      </nav>
+      <a class="btn btn-ghost" href="index.html">Change topic</a>
+    </header>
+
+    <main>
+      <section class="hero hero--discover">
+        <div>
+          <p class="eyebrow" id="discoverTopic">Topic</p>
+          <h1 id="discoverTitle">Discover</h1>
+          <p id="discoverSummary">
+            Choose a topic from the home page to load preferences and curated groups.
+          </p>
+        </div>
+        <div id="topicHighlights" class="pill-row"></div>
+      </section>
+
+      <section class="card-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Preferences</p>
+            <h2 id="discoverFormHeading">Tell us what kind of match you want.</h2>
+            <p id="discoverFormCopy">
+              We’ll mix these selections with your saved profile tags to generate group
+              suggestions.
+            </p>
+          </div>
+        </div>
+        <form id="discoverForm">
+          <div id="discoverFields" class="form-grid"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Generate matches</button>
+            <button type="button" class="btn btn-ghost" id="discoverReset">Reset</button>
+          </div>
+          <p class="status" id="discoverStatus" role="status"></p>
+        </form>
+      </section>
+
+      <section class="card-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Matches</p>
+            <h2>AI-crafted invites</h2>
+            <p>Accept the ones that feel right to unlock them inside Network chat.</p>
+          </div>
+        </div>
+        <div id="discoverMatches" class="match-list">
+          <div class="empty-state">
+            <h3>No matches yet</h3>
+            <p>Fill the form above and press “Generate matches”.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Need to update tags? Head to <a href="profile.html">Profile</a>.</p>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="discover.html?topic=Travel">Another topic</a>
+        <a href="network.html">Network</a>
+      </div>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
+

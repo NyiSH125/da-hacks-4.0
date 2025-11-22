@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeLink · Network</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="network">
+    <header class="site-nav">
+      <a class="logo" href="index.html">VibeLink</a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="profile.html">Profile</a>
+        <a href="discover.html?topic=Travel">Discover</a>
+        <a href="network.html" class="active">Network</a>
+      </nav>
+      <a class="btn btn-ghost" href="discover.html?topic=Sports">Add more matches</a>
+    </header>
+
+    <main>
+      <section class="hero hero--network">
+        <div>
+          <p class="eyebrow">Network</p>
+          <h1>Group chats unlocked from your saved invites.</h1>
+          <p>Accept invites on Discover pages and they’ll appear here automatically.</p>
+        </div>
+        <div id="networkStats" class="pill-row"></div>
+      </section>
+
+      <section class="card-section">
+        <div class="network-layout">
+          <aside class="chat-list" id="networkList">
+            <div class="empty-state small">
+              <h4>No saved chats yet</h4>
+              <p>Save a match from the Discover pages to unlock this view.</p>
+            </div>
+          </aside>
+          <div class="chat-window" id="networkWindow">
+            <div class="chat-placeholder">
+              <h3>Select a chat</h3>
+              <p>Pick a saved group on the left to read updates or send a message.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Keep stacking tags on <a href="profile.html">Profile</a> for better matches.</p>
+      <div class="footer-links">
+        <a href="discover.html?topic=Friends">Discover more</a>
+        <a href="index.html">Home</a>
+      </div>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
+
