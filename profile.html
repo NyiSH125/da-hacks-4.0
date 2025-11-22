@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="vibelink-gemini-proxy" content="http://localhost:3001/api/gemini" />
     <title>VibeLink · Profile</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -74,6 +75,16 @@
             ></textarea>
           </label>
 
+          <label class="full">
+            Natural language preferences (AI-powered)
+            <textarea
+              id="naturalLanguagePreferences"
+              rows="3"
+              placeholder="Describe what you're looking for in your own words. For example: 'I want a study buddy who's serious about grades, prefers quiet environments, and can meet in the evenings. Someone who's organized and won't flake on study sessions.'"
+            ></textarea>
+            <p class="field-hint">AI will analyze this text and extract relevant tags and preferences automatically.</p>
+          </label>
+
           <div class="tag-stack">
             <section class="tag-panel" aria-labelledby="aboutTagsLabel">
               <div class="tag-panel__header">
@@ -126,6 +137,7 @@
       </div>
     </footer>
 
+    <script src="ai-service.js"></script>
     <script src="app.js" defer></script>
   </body>
 </html>

@@ -3,6 +3,214 @@ const STORAGE_KEYS = {
   savedMatches: "vibelink-saved-matches",
 };
 
+const AI_ENABLED = true; // Toggle AI features on/off
+
+// AI_SERVICE is loaded from ai-service.js (declared there as const)
+// We just reference it, don't redeclare it
+
+const TAG_SUGGESTIONS = {
+  about: [
+    "introverted",
+    "organized",
+    "night owl",
+    "early riser",
+    "tactical gamer",
+    "collaborative learner",
+    "creative strategist",
+    "community builder",
+    "calm communicator",
+    "competitive",
+    "plant parent",
+    "runner",
+    "cozy gamer",
+  ],
+  looking: [
+    "motivated study buddy",
+    "quiet roommate",
+    "high-ELO teammate",
+    "weekly run club",
+    "volleyball squad",
+    "people who prefer mornings",
+    "night shift coders",
+    "mindful roommates",
+    "gym accountability partner",
+    "cozy co-op gamer",
+  ],
+};
+
+const CATEGORY_COPY = {
+  Education: {
+    eyebrow: "Education",
+    title: "Study Pods & Accountability Crews",
+    description:
+      "Switch between late-night focus squads or morning studio labs. Choose a focus to see curated pods aligned with your tags.",
+    dropdownLabel: "Study focus",
+  },
+  Sports: {
+    eyebrow: "Sports",
+    title: "Pickup Games & Training Crews",
+    description:
+      "Dial-in by sport, intensity, and home court. Matches surface squads that share your role preferences and schedule.",
+    dropdownLabel: "Sport preference",
+  },
+  Gaming: {
+    eyebrow: "Gaming",
+    title: "Ranked Queues & Cozy Lobbies",
+    description:
+      "Choose the ladder you grind or the co-op vibe you love. We balance rank, playstyle, and comms.",
+    dropdownLabel: "Game focus",
+  },
+  Roommates: {
+    eyebrow: "Roommates",
+    title: "Living Situations That Match Your Rhythm",
+    description:
+      "Screen for cleanliness, rituals, and schedules. VibeLink highlights households that already live like you do.",
+    dropdownLabel: "Lifestyle vibe",
+  },
+};
+
+const CATEGORY_OPTIONS = {
+  Education: [
+    { label: "Any study focus", value: "all" },
+    { label: "Night-owl accountability", value: "night-owl" },
+    { label: "Product & design labs", value: "design" },
+    { label: "Computer science grind", value: "computer science" },
+  ],
+  Sports: [
+    { label: "All sports", value: "all" },
+    { label: "Volleyball squads", value: "volleyball" },
+    { label: "Soccer & futsal crews", value: "soccer" },
+    { label: "Sunrise run clubs", value: "running" },
+  ],
+  Gaming: [
+    { label: "All gaming vibes", value: "all" },
+    { label: "Valorant ranked", value: "valorant" },
+    { label: "Cozy co-op", value: "cozy" },
+    { label: "Tactical squads", value: "tactical" },
+  ],
+  Roommates: [
+    { label: "All lifestyles", value: "all" },
+    { label: "Quiet mornings", value: "quiet" },
+    { label: "Creative loft energy", value: "creative" },
+    { label: "Night shift coders", value: "night" },
+  ],
+};
+
+const MATCH_TEMPLATES = [
+  {
+    id: "edu-night-owl",
+    category: "Education",
+    title: "Night Owl Accountability Pod",
+    summary: "11pm focus sprints with pomodoro timers and shared Notion dashboards.",
+    keywords: ["night-owl", "computer science"],
+    tags: ["night owl", "pomodoro", "cs439", "deep work"],
+    details: ["Late nights · Sun-Thu", "Shared spaced-repetition decks", "Camera-optional focus rooms"],
+    members: ["Kai · Cloud eng", "Jenny · Stats grad", "Mara · UX minor"],
+    baseScore: 58,
+  },
+  {
+    id: "edu-product-studio",
+    category: "Education",
+    title: "Product Studio Crunch Crew",
+    summary: "Morning makers balancing capstone prototyping with design critiques.",
+    keywords: ["design", "morning"],
+    tags: ["mornings", "product", "figma", "accountability"],
+    details: ["Mon/Wed 9am standups", "Figma review swaps", "Sprint demo prep"],
+    members: ["Lina · Design lead", "Omar · Frontend dev", "Priya · Researcher"],
+    baseScore: 60,
+  },
+  {
+    id: "sports-volleyball",
+    category: "Sports",
+    title: "Downtown Volleyball Stack",
+    summary: "Intermediate co-ed squad rotating setter drills and chill scrims.",
+    keywords: ["volleyball"],
+    tags: ["setter", "drills", "weeknights", "downtown"],
+    details: ["Tue/Thu 7pm · Downtown Rec", "Need one setter + libero", "Chill competitive pace"],
+    members: ["Theo · Opp hitter", "Mika · Libero", "Rowan · Setter", "Jude · Coach"],
+    baseScore: 62,
+  },
+  {
+    id: "sports-run-club",
+    category: "Sports",
+    title: "Sunrise Run Club · Lady Bird Trail",
+    summary: "6am runners pacing 9-10 min miles with matcha cooldowns.",
+    keywords: ["running"],
+    tags: ["morning", "running", "trail", "accountability"],
+    details: ["Tues/Thu 6am start", "Warm-up mobility led by Ellis", "Post-run matcha bar hang"],
+    members: ["Noor · Pacer", "Ellis · Strength coach", "Sam · Med student"],
+    baseScore: 55,
+  },
+  {
+    id: "sports-soccer",
+    category: "Sports",
+    title: "Eastside Futsal Triangle",
+    summary: "Weeknight futsal runs for midfielders who like quick rotations.",
+    keywords: ["soccer"],
+    tags: ["soccer", "midfielder", "weeknights", "eastside"],
+    details: ["Wed/Fri 8pm", "Indoor futsal court", "Looking for flexible winger"],
+    members: ["Piper · Mid", "Luis · Keeper", "Ren · Winger"],
+    baseScore: 57,
+  },
+  {
+    id: "gaming-valorant",
+    category: "Gaming",
+    title: "Valorant Tactical Trio",
+    summary: "Ascendant-ranked supportive mains running weekly VOD reviews.",
+    keywords: ["valorant", "tactical"],
+    tags: ["valorant", "tactical", "ranked", "discord"],
+    details: ["Thu/Fri ranked queues", "VOD review Sundays", "Zero tilt comms"],
+    members: ["Milo · Controller", "Ivy · Initiator", "Rey · Flex"],
+    baseScore: 63,
+  },
+  {
+    id: "gaming-cozy",
+    category: "Gaming",
+    title: "Cozy Co-Op Saturdays",
+    summary: "Narrative explorers hopping between indie titles and Stardew farms.",
+    keywords: ["cozy"],
+    tags: ["stardew", "story driven", "co-op", "slow living"],
+    details: ["Sat 6pm CST", "Switch + PC cross-play", "Playlist swaps each week"],
+    members: ["Ames · Farm architect", "Bea · Narrative curator", "Sol · Chill tank"],
+    baseScore: 54,
+  },
+  {
+    id: "room-quiet",
+    category: "Roommates",
+    title: "Quiet Morning Loft Share",
+    summary: "Two-bedroom loft prioritizing plant care, calm playlists, and early lights out.",
+    keywords: ["quiet"],
+    tags: ["tea", "plants", "early riser", "minimalist"],
+    details: ["Lights out 10:30pm", "Shared yoga mat space", "Utilities avg $85/mo"],
+    members: ["Mira · UX researcher", "Han · Bio major"],
+    baseScore: 56,
+  },
+  {
+    id: "room-creative",
+    category: "Roommates",
+    title: "Creative Loft Collective",
+    summary: "Sunlit loft for night-owl makers who jam, paint, and co-work respectfully.",
+    keywords: ["creative", "night"],
+    tags: ["night owl", "music", "jam sessions", "respectful noise"],
+    details: ["Headphones after 11pm", "Monthly gallery pop-up", "Bike storage included"],
+    members: ["Zee · Audio engineer", "Poppy · Illustrator", "Luis · XR dev"],
+    baseScore: 58,
+  },
+];
+
+const defaultProfile = {
+  fullName: "",
+  displayName: "",
+  city: "",
+  photo: "",
+  bio: "",
+  aboutTags: [],
+  lookingTags: [],
+  categories: [],
+  naturalLanguagePreferences: "", // New field for AI text analysis
+  aiInsights: null, // Store AI-generated insights
+};
+
 const tagState = {
   about: new Map(),
   looking: new Map(),
@@ -66,6 +274,52 @@ const DISCOVER_COPY = {
     ],
   },
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("VibeLink: DOMContentLoaded fired");
+  
+  // Initialize AI service if available
+  if (AI_ENABLED) {
+    try {
+      if (typeof AI_SERVICE !== 'undefined') {
+        // AI_SERVICE is loaded from ai-service.js
+        window.AI_SERVICE = AI_SERVICE;
+        // Initialize AI service (will check for proxy or user's API key)
+        const initialized = AI_SERVICE.init();
+        if (initialized) {
+          console.log("VibeLink: AI Service initialized successfully");
+        } else {
+          console.warn("VibeLink: AI Service initialization failed - AI features disabled");
+        }
+      } else {
+        console.warn("VibeLink: AI_SERVICE not found - make sure ai-service.js is loaded");
+      }
+    } catch (error) {
+      console.error("VibeLink: Error initializing AI service:", error);
+    }
+  }
+  
+  try {
+  const page = document.body?.dataset.page || "home";
+    console.log("VibeLink: Initializing page:", page);
+  const map = {
+    home: initHomePage,
+    profile: initProfilePage,
+    category: initCategoryPage,
+      discover: initDiscoverPage,
+      network: initNetworkPage,
+    };
+    const initFn = map[page];
+    if (initFn) {
+      initFn();
+      console.log("VibeLink: Page initialized successfully");
+    } else {
+      console.error("VibeLink: No init function found for page:", page);
+    }
+  } catch (error) {
+    console.error("VibeLink: Error initializing page:", error);
+  }
+});
 
 const MATCH_LIBRARY = [
   {
@@ -189,7 +443,7 @@ const AI_BOTS = [
       "Which field or city should we plan our next pickup game in?",
       "Share a book or playlist that hypes you up before a match.",
     ],
-    openingMessage: "Hey! I’m Sarah. I love hosting pick-up games and post-match travel chats. Let’s plan something fun.",
+    openingMessage: "Hey! I'm Sarah. I love hosting pick-up games and post-match travel chats. Let's plan something fun.",
   },
   {
     id: "ryan",
@@ -200,9 +454,9 @@ const AI_BOTS = [
     topics: ["Education", "Sports", "Gaming"],
     conversationStarters: [
       "Want to pair-program or run drills first?",
-      "What’s the nerdiest thing you built recently?",
+      "What's the nerdiest thing you built recently?",
     ],
-    openingMessage: "Hi, Ryan here. I’m usually quiet until we start coding or passing drills—but I’m excited to sync up.",
+    openingMessage: "Hi, Ryan here. I'm usually quiet until we start coding or passing drills—but I'm excited to sync up.",
   },
   {
     id: "alex",
@@ -215,7 +469,85 @@ const AI_BOTS = [
       "Favorite café for deep conversations?",
       "Which book do you always recommend?",
     ],
-    openingMessage: "Hey! I’m Alex. I don’t do sports, but I can host a great conversation over coffee or books. Let’s connect.",
+    openingMessage: "Hey! I'm Alex. I don't do sports, but I can host a great conversation over coffee or books. Let's connect.",
+  },
+  {
+    id: "maya",
+    name: "Maya",
+    title: "Maya · Study Pod Leader & Night Owl",
+    personaTags: ["organized", "night owl", "collaborative learner", "accountability partner"],
+    likes: ["night owl", "pomodoro", "study buddy", "computer science"],
+    topics: ["Education", "Roommates"],
+    conversationStarters: [
+      "What's your go-to study technique?",
+      "Want to set up a shared Notion workspace?",
+    ],
+    openingMessage: "Hi! I'm Maya. I run late-night study pods and love accountability partners. Let's crush some goals together!",
+  },
+  {
+    id: "jordan",
+    name: "Jordan",
+    title: "Jordan · Gaming Enthusiast & Tactical Player",
+    personaTags: ["tactical gamer", "competitive", "ranked player", "discord regular"],
+    likes: ["valorant", "tactical", "ranked", "zero tilt"],
+    topics: ["Gaming", "Friends"],
+    conversationStarters: [
+      "What rank are you grinding for?",
+      "Want to run some VOD reviews together?",
+    ],
+    openingMessage: "Hey! Jordan here. I'm all about ranked queues and improving gameplay. Let's queue up and climb together!",
+  },
+  {
+    id: "sam",
+    name: "Sam",
+    title: "Sam · Cozy Gamer & Chill Vibes",
+    personaTags: ["cozy gamer", "story driven", "co-op lover", "slow living"],
+    likes: ["cozy", "stardew", "story driven", "co-op"],
+    topics: ["Gaming", "Friends", "Roommates"],
+    conversationStarters: [
+      "What cozy games are you playing right now?",
+      "Want to start a farm together in Stardew?",
+    ],
+    openingMessage: "Hi! I'm Sam. I love cozy games and chill vibes. Perfect for unwinding after a long day. Let's game together!",
+  },
+  {
+    id: "taylor",
+    name: "Taylor",
+    title: "Taylor · Runner & Fitness Enthusiast",
+    personaTags: ["runner", "early riser", "fitness", "accountability partner"],
+    likes: ["running", "morning", "trail", "gym"],
+    topics: ["Sports", "Friends"],
+    conversationStarters: [
+      "What's your favorite running route?",
+      "Want to join our sunrise run club?",
+    ],
+    openingMessage: "Hey! I'm Taylor. I'm all about morning runs and staying active. Let's hit the trails together!",
+  },
+  {
+    id: "riley",
+    name: "Riley",
+    title: "Riley · Creative & Plant Parent",
+    personaTags: ["plant parent", "creative", "minimalist", "early riser"],
+    likes: ["plants", "quiet", "tea", "minimalist"],
+    topics: ["Roommates", "Friends", "Dating"],
+    conversationStarters: [
+      "How many plants do you have?",
+      "Want to swap plant care tips?",
+    ],
+    openingMessage: "Hi! I'm Riley. I love plants, quiet mornings, and creative spaces. Looking for like-minded roommates!",
+  },
+  {
+    id: "casey",
+    name: "Casey",
+    title: "Casey · Travel Explorer & Adventure Seeker",
+    personaTags: ["traveler", "adventurous", "outgoing", "explorer"],
+    likes: ["travel", "adventure", "backpacking", "road trips"],
+    topics: ["Travel", "Friends", "Dating"],
+    conversationStarters: [
+      "What's your dream destination?",
+      "Want to plan a weekend road trip?",
+    ],
+    openingMessage: "Hey! I'm Casey. Always planning the next adventure. Let's explore together!",
   },
 ];
 
@@ -246,8 +578,9 @@ function resolveGeminiAuth() {
   const candidate = (envProxy || metaProxy || "").trim();
   if (candidate) {
     const url = candidate;
-    if (!url.startsWith("https://")) {
-      console.warn("VIBELINK_GEMINI_PROXY must be https.");
+    // Allow http:// for localhost development, https:// for production
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      console.warn("VIBELINK_GEMINI_PROXY must start with http:// or https://");
       return null;
     }
     if (/key=|api_key=/i.test(url)) {
@@ -256,9 +589,11 @@ function resolveGeminiAuth() {
     }
     try {
       const parsed = new URL(url, window?.location?.origin);
-      if (window?.location?.origin && parsed.origin !== window.location.origin) {
-        console.error("VIBELINK_GEMINI_PROXY must live on the same origin as the app.");
-        return null;
+      // Allow same origin or localhost for development
+      const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+      if (window?.location?.origin && parsed.origin !== window.location.origin && !isLocalhost) {
+        console.warn("VIBELINK_GEMINI_PROXY should live on the same origin as the app (localhost allowed for dev).");
+        // Don't return null - allow localhost proxy
       }
       return { type: "proxy", url: parsed.href };
     } catch (error) {
@@ -269,22 +604,7 @@ function resolveGeminiAuth() {
   return null;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const page = document.body?.dataset.page || "home";
-  switch (page) {
-    case "profile":
-      initProfilePage();
-      break;
-    case "discover":
-      initDiscoverPage();
-      break;
-    case "network":
-      initNetworkPage();
-      break;
-    default:
-      highlightNav("home");
-  }
-});
+// Removed duplicate DOMContentLoaded - using the one at line 281 that handles all pages
 
 function highlightNav(page) {
   document.querySelectorAll(".nav-links a").forEach((link) => {
@@ -302,6 +622,23 @@ function highlightNav(page) {
   });
 }
 
+/* Home */
+function initHomePage() {
+  highlightNav("home");
+  const profile = loadProfile();
+  const cards = document.querySelectorAll("[data-category-card]");
+  cards.forEach((card) => {
+    const category = card.dataset.categoryCard;
+    const checkbox = card.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.checked = profile.categories.includes(category);
+      checkbox.addEventListener("change", () => toggleCategory(category, checkbox.checked));
+    }
+    card.querySelector("[data-category-link]")?.addEventListener("click", () => ensureCategorySelected(category));
+  });
+  renderSelectedCategories(profile.categories);
+}
+
 /* Profile */
 function initProfilePage() {
   highlightNav("profile");
@@ -311,12 +648,22 @@ function initProfilePage() {
   setInputValue("city", profile.city);
   setInputValue("photo", profile.photo);
   setInputValue("bio", profile.bio);
+  setInputValue("naturalLanguagePreferences", profile.naturalLanguagePreferences || "");
+
   setupTagPanels(profile);
-  document.getElementById("profileForm")?.addEventListener("submit", handleProfileSave);
+  setupAIFeatures();
+
+  const form = document.getElementById("profileForm");
+  form?.addEventListener("submit", handleProfileSave);
   document.getElementById("profileResetBtn")?.addEventListener("click", handleProfileReset);
+  
+  // Add AI text analysis button if AI is enabled
+  if (AI_ENABLED) {
+    setupAITextAnalysis();
+  }
 }
 
-function handleProfileSave(event) {
+async function handleProfileSave(event) {
   event.preventDefault();
   const profile = {
     ...loadProfile(),
@@ -325,9 +672,138 @@ function handleProfileSave(event) {
     city: getValue("city"),
     photo: getValue("photo"),
     bio: getValue("bio"),
+    naturalLanguagePreferences: getValue("naturalLanguagePreferences"),
     aboutTags: Array.from(tagState.about.values()),
     lookingTags: Array.from(tagState.looking.values()),
   };
+  
+  // Analyze natural language input with AI if provided
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (AI_ENABLED && profile.naturalLanguagePreferences && aiService && (aiService.apiKey || aiService.proxyUrl)) {
+    setStatusMessage("profileStatus", "Analyzing preferences with AI...");
+    try {
+      const textAnalysis = await aiService.analyzeTextInput(profile.naturalLanguagePreferences);
+      if (textAnalysis && textAnalysis.extracted_tags) {
+        // Auto-add extracted tags to looking tags
+        textAnalysis.extracted_tags.forEach(tag => {
+          if (tag && !tagState.looking.has(normalize(tag))) {
+            addTag("looking", tag);
+          }
+        });
+        profile.lookingTags = Array.from(tagState.looking.values());
+        profile.aiInsights = textAnalysis;
+      }
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      setStatusMessage("profileStatus", "Profile saved (AI analysis skipped) ✨");
+    }
+  }
+  
+  saveProfile(profile);
+  setStatusMessage("profileStatus", "Profile saved ✨");
+}
+
+function initCategoryPage() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("category");
+  const category = CATEGORY_COPY[requested] ? requested : "Education";
+  const copy = CATEGORY_COPY[category];
+
+  const eyebrow = document.getElementById("categoryEyebrow");
+  const title = document.getElementById("categoryTitle");
+  const description = document.getElementById("categoryDescription");
+  const preferenceLabel = document.getElementById("preferenceLabel");
+
+  if (eyebrow) eyebrow.textContent = copy.eyebrow;
+  if (title) title.textContent = copy.title;
+  if (description) description.textContent = copy.description;
+  if (preferenceLabel) preferenceLabel.textContent = copy.dropdownLabel;
+
+  hydratePreferenceSelect(category);
+  document.getElementById("generateMatchesBtn")?.addEventListener("click", () => renderCategoryMatches(category));
+  renderCategoryMatches(category);
+}
+
+// Removed duplicate functions - using the correct ones at line 1431
+
+function toggleCategory(category, isChecked) {
+  const profile = loadProfile();
+  const categories = new Set(profile.categories);
+  if (isChecked) {
+    categories.add(category);
+  } else {
+    categories.delete(category);
+  }
+  profile.categories = Array.from(categories);
+  saveProfile(profile);
+  renderSelectedCategories(profile.categories);
+}
+
+function ensureCategorySelected(category) {
+  const profile = loadProfile();
+  if (profile.categories.includes(category)) return;
+  profile.categories = [...profile.categories, category];
+  saveProfile(profile);
+  renderSelectedCategories(profile.categories);
+}
+
+function renderSelectedCategories(categories = []) {
+  const container = document.getElementById("selectedCategories");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!categories.length) {
+    container.innerHTML = `<span class="chip chip--ghost">No categories selected yet</span>`;
+    return;
+  }
+  categories.forEach((category) => {
+    const span = document.createElement("span");
+    span.className = "chip chip--solid";
+    span.textContent = category;
+    container.appendChild(span);
+  });
+}
+
+function setInputValue(id, value) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.value = value || "";
+  }
+}
+
+async function handleProfileSave(event) {
+  event.preventDefault();
+  const profile = loadProfile();
+  profile.fullName = getValue("fullName");
+  profile.displayName = getValue("displayName");
+  profile.city = getValue("city");
+  profile.photo = getValue("photo");
+  profile.bio = getValue("bio");
+  profile.naturalLanguagePreferences = getValue("naturalLanguagePreferences");
+  profile.aboutTags = Array.from(tagState.about.values());
+  profile.lookingTags = Array.from(tagState.looking.values());
+  
+  // Analyze natural language input with AI if provided
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (AI_ENABLED && profile.naturalLanguagePreferences && aiService && (aiService.apiKey || aiService.proxyUrl)) {
+    setStatusMessage("profileStatus", "Analyzing preferences with AI...");
+    try {
+      const textAnalysis = await aiService.analyzeTextInput(profile.naturalLanguagePreferences);
+      if (textAnalysis && textAnalysis.extracted_tags) {
+        // Auto-add extracted tags to looking tags
+        textAnalysis.extracted_tags.forEach(tag => {
+          if (tag && !tagState.looking.has(normalize(tag))) {
+            addTag("looking", tag);
+          }
+        });
+        profile.lookingTags = Array.from(tagState.looking.values());
+        profile.aiInsights = textAnalysis;
+      }
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      setStatusMessage("profileStatus", "Profile saved (AI analysis skipped) ✨");
+    }
+  }
+  
   saveProfile(profile);
   setStatusMessage("profileStatus", "Profile saved ✨");
 }
@@ -376,10 +852,7 @@ function bindTagControls() {
   });
 }
 
-const TAG_SUGGESTIONS = {
-  about: ["introverted", "organized", "night owl", "early riser", "tactical gamer", "runner", "creative strategist"],
-  looking: ["motivated study buddy", "quiet roommate", "weekly run club", "high-ELO teammate", "cozy co-op gamer", "mindful roommates"],
-};
+// TAG_SUGGESTIONS moved to top of file to avoid duplication
 
 function renderTagSuggestions(type) {
   const container = document.querySelector(`[data-tag-suggestions="${type}"]`);
@@ -514,7 +987,7 @@ async function renderDiscoverMatches(topic) {
   container.innerHTML = `
     <div class="empty-state">
       <h3>Generating suggestions…</h3>
-      <p>We’re asking Gemini and the VibeLink bots to assemble a pod for you.</p>
+      <p>We're asking Gemini and the VibeLink bots to assemble a pod for you.</p>
     </div>
   `;
   const profile = loadProfile();
@@ -554,9 +1027,124 @@ async function renderDiscoverMatches(topic) {
   setStatusMessage("discoverStatus", `Showing ${combinedMatches.length} match${combinedMatches.length > 1 ? "es" : ""}.`);
 }
 
-function buildMatchCard(match) {
+async function renderCategoryMatches(category) {
+  const container = document.getElementById("categoryMatches");
+  const select = document.getElementById("preferenceSelect");
+  if (!container || !select) return;
+  const preference = select.value || "all";
+  const profile = loadProfile();
+  const matches = MATCH_TEMPLATES.filter((match) => match.category === category).filter((match) => {
+    if (preference === "all") return true;
+    return match.keywords.includes(preference);
+  });
+
+  container.innerHTML = "";
+  if (!matches.length) {
+    container.appendChild(buildEmptyState(preference));
+    setStatusMessage("categoryStatus", "No invites yet. Try a different dropdown option.");
+    return;
+  }
+
+  // Show loading state if using AI
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl)) {
+    setStatusMessage("categoryStatus", "Analyzing matches with AI...");
+    container.innerHTML = '<div class="loading-state">Analyzing compatibility with AI...</div>';
+  }
+
+  // Calculate scores (with AI enhancement if available)
+  const matchResults = [];
+  for (const match of matches) {
+    let score = calculateScore(match, profile, preference);
+    let aiInsights = null;
+    let explanation = null;
+
+    // Enhance with AI if available
+    if (AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl)) {
+      try {
+        aiInsights = await aiService.generateMatchScore(profile, match, category, preference);
+        if (aiInsights && aiInsights.compatibility_score) {
+          // Blend AI score with traditional score (70% AI, 30% traditional)
+          score = Math.round(score * 0.3 + aiInsights.compatibility_score * 0.7);
+          score = Math.min(99, Math.max(0, score));
+        }
+        if (aiInsights) {
+          explanation = await aiService.generateMatchExplanation(profile, match, score, aiInsights);
+        }
+      } catch (error) {
+        console.error("AI matching error:", error);
+        // Fall back to traditional scoring
+      }
+    }
+
+    matchResults.push({ match, score, aiInsights, explanation });
+  }
+
+  // Sort by score (highest first)
+  matchResults.sort((a, b) => b.score - a.score);
+
+  // Render matches
+  container.innerHTML = "";
+  matchResults.forEach(({ match, score, aiInsights, explanation }) => {
+    container.appendChild(buildMatchCard(match, score, aiInsights, explanation));
+  });
+
+  setStatusMessage("categoryStatus", `Showing ${matches.length} match${matches.length > 1 ? "es" : ""} (AI-enhanced).`);
+}
+
+function buildEmptyState(preference) {
+  const div = document.createElement("div");
+  div.className = "empty-state";
+  const label = preference === "all" ? "a category" : preference;
+  div.innerHTML = `
+    <h3>No matches yet</h3>
+    <p>Try switching the dropdown or add more tags on the profile page for stronger signals (${label}).</p>
+  `;
+  return div;
+}
+
+function buildMatchCard(match, score = null, aiInsights = null, explanation = null) {
   const article = document.createElement("article");
   article.className = "match-card";
+  
+  // Build AI insights section if available
+  let aiSection = "";
+  if (aiInsights) {
+    const reasons = aiInsights.match_reasons || [];
+    const concerns = aiInsights.potential_concerns || [];
+    const starters = aiInsights.conversation_starters || [];
+    
+    aiSection = `
+      <div class="ai-insights">
+        ${explanation ? `<p class="ai-explanation">${explanation}</p>` : ""}
+        ${reasons.length > 0 ? `
+          <div class="ai-reasons">
+            <strong>Why this match:</strong>
+            <ul>
+              ${reasons.map(r => `<li>${r}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
+        ${starters.length > 0 ? `
+          <div class="ai-starters">
+            <strong>Conversation starters:</strong>
+            <ul>
+              ${starters.map(s => `<li>${s}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
+        ${concerns.length > 0 ? `
+          <div class="ai-concerns">
+            <strong>Consider:</strong>
+            <ul>
+              ${concerns.map(c => `<li>${c}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+  
   article.innerHTML = `
     <header>
       <div>
@@ -571,15 +1159,16 @@ function buildMatchCard(match) {
     <div class="member-stack">
       ${match.members.map((member) => `<span class="member">${member}</span>`).join("")}
     </div>
+    ${aiSection}
     <button class="btn btn-primary" data-save-match="${match.id}">Save invite</button>
   `;
 
   article.querySelector("[data-save-match]")?.addEventListener("click", () => {
     const saved = saveMatch(match);
-    const button = article.querySelector("[data-save-match]");
+  const button = article.querySelector("[data-save-match]");
     if (saved) {
       button.textContent = "Saved to Network";
-      button.classList.add("accepted");
+    button.classList.add("accepted");
       button.disabled = true;
       setStatusMessage("discoverStatus", `${match.title} added to Network.`);
     } else {
@@ -592,9 +1181,31 @@ function buildMatchCard(match) {
 }
 
 async function fetchGeminiMatches(topic, profile, preferenceTokens) {
+  // Try using AI_SERVICE first (from ai-service.js)
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (aiService && (aiService.apiKey || aiService.proxyUrl)) {
+    try {
+      // Use the AI service to generate matches
+      const prompt = composeGeminiPrompt(topic, profile, preferenceTokens);
+      const response = await aiService.callAPI([{
+        role: "user",
+        content: prompt
+      }], { max_tokens: 1000 });
+      
+      // Parse the response and build matches
+      const parsed = extractJsonArray(response);
+      if (Array.isArray(parsed) && parsed.length) {
+        return parsed.map((item, index) => buildMatchFromGemini(item, topic, index)).filter(Boolean);
+      }
+    } catch (error) {
+      console.warn("AI_SERVICE Gemini request failed, falling back to proxy", error);
+    }
+  }
+  
+  // Fallback to proxy system if AI_SERVICE not available
   const auth = resolveGeminiAuth();
   if (!auth) {
-    console.warn("VIBELINK_GEMINI_PROXY is not configured; skipping Gemini matches.");
+    console.warn("Gemini API not configured; skipping Gemini matches.");
     return [];
   }
   try {
@@ -722,6 +1333,174 @@ function extractJsonArray(text) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Generate a fallback chat response when AI is unavailable
+ * Uses intelligent context-aware responses based on conversation history and match context
+ */
+function generateFallbackChatResponse(match, userMessage, conversationHistory, respondingMemberName = null) {
+  const message = userMessage.toLowerCase().trim();
+  const topic = match.topic || "";
+  const tags = match.tags || [];
+  
+  // Extract member name and role from responding member (or first member)
+  const memberToUse = respondingMemberName || match.members[0] || "Group Member";
+  const memberParts = memberToUse.split("·");
+  const memberName = memberParts[0].trim();
+  const memberRole = memberParts.length > 1 ? memberParts[1].trim() : "";
+  
+  // Find matching AI bot for better persona-based responses
+  const matchingBot = AI_BOTS.find(bot => {
+    const botNameMatch = bot.name.toLowerCase() === memberName.toLowerCase();
+    const topicMatch = bot.topics.includes(topic);
+    return botNameMatch || topicMatch;
+  });
+  
+  // Analyze the user's message more intelligently
+  const isQuestion = message.includes("?") || 
+    /^(what|who|when|where|why|how|which|is|are|can|could|would|do|does|did)\s/i.test(message);
+  const isGreeting = /^(hi|hey|hello|sup|yo|greetings)/i.test(message);
+  const isNameQuestion = /(what.*name|who.*are.*you|your.*name)/i.test(message);
+  const isPersonalQuestion = /(your|you|yourself)/i.test(message);
+  
+  // Get context from recent conversation
+  const lastMessage = conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1] : null;
+  const conversationTopic = extractTopicFromHistory(conversationHistory);
+  
+  // Handle name questions intelligently
+  if (isNameQuestion) {
+    if (memberRole) {
+      return `I'm ${memberName}, the ${memberRole} for this group. Nice to meet you!`;
+    }
+    return `I'm ${memberName}! Great to connect with you.`;
+  }
+  
+  // Handle favorite game questions (common for gaming groups)
+  if (message.includes("favorite") && (message.includes("game") || message.includes("games"))) {
+    if (matchingBot) {
+      if (matchingBot.personaTags.some(t => t.includes("cozy"))) {
+        return "I'm really into cozy games like Stardew Valley and Animal Crossing! They're perfect for unwinding. What about you?";
+      }
+      if (matchingBot.personaTags.some(t => t.includes("tactical") || t.includes("competitive"))) {
+        return "I'm all about tactical games like Valorant and CS:GO. Love the competitive aspect! What do you play?";
+      }
+    }
+    if (topic === "Gaming") {
+      const gameTag = tags.find(t => t.includes("game") || t.includes("gaming"));
+      const gameType = gameTag || "a few different games";
+      return `I love gaming! Right now I'm really into ${gameType}. What's your favorite?`;
+    }
+  }
+  
+  // Handle greetings with context
+  if (isGreeting) {
+    if (conversationHistory.length === 0) {
+      return `Hey! I'm ${memberName}${memberRole ? `, the ${memberRole}` : ""}. Excited to be part of this ${topic.toLowerCase()} group!`;
+    }
+    return `Hey there! Welcome to the group. I'm ${memberName}.`;
+  }
+  
+  // Handle questions with topic-specific intelligent responses
+  if (isQuestion) {
+    // Education topic
+    if (topic === "Education" || tags.some(t => t.includes("study") || t.includes("learn") || t.includes("accountability"))) {
+      if (message.includes("when") || message.includes("time") || message.includes("schedule")) {
+        return "I usually study late nights, around 10pm-1am. What works for you? We could sync up!";
+      }
+      if (message.includes("how") || message.includes("technique") || message.includes("method")) {
+        return "I've been using the Pomodoro technique—25 min focused sessions with 5 min breaks. It's been really effective!";
+      }
+      if (message.includes("what") && (message.includes("task") || message.includes("work") || message.includes("focus"))) {
+        const workItem = memberRole || "current project";
+        return `I'm working on my ${workItem} tonight. What are you tackling?`;
+      }
+      return "That's a great question! I'd love to discuss it more. Want to set up a study session to dive deeper?";
+    }
+    
+    // Sports topic
+    if (topic === "Sports" || tags.some(t => t.includes("run") || t.includes("game") || t.includes("sport") || t.includes("fitness"))) {
+      if (message.includes("when") || message.includes("time") || message.includes("schedule")) {
+        return "I'm usually free in the mornings for runs, or evenings for games. What works for everyone?";
+      }
+      if (message.includes("where") || message.includes("location") || message.includes("place")) {
+        return "I know a great spot! Want me to share the location? We could meet there.";
+      }
+      if (message.includes("race") || message.includes("event")) {
+        return "I've been eyeing a few races coming up. Are you training for something specific?";
+      }
+      if (message.includes("stretch") || message.includes("warm") || message.includes("cool")) {
+        return "I have some great stretches! Dynamic warm-ups before, static stretches after. Want me to share my routine?";
+      }
+      return "I'm definitely interested! Let's coordinate the details and make it happen.";
+    }
+    
+    // Travel topic
+    if (topic === "Travel" || tags.some(t => t.includes("travel") || t.includes("trip") || t.includes("adventure"))) {
+      if (message.includes("when") || message.includes("time")) {
+        return "I'm flexible on timing! What dates are you thinking? I'd love to join if it works out.";
+      }
+      if (message.includes("where") || message.includes("location") || message.includes("place")) {
+        return "I've been wanting to explore that area! I know some great spots there. Want recommendations?";
+      }
+      return "That sounds amazing! I'm definitely interested. Let's plan it out!";
+    }
+    
+    // Gaming topic
+    if (topic === "Gaming" || tags.some(t => t.includes("game") || t.includes("gaming") || t.includes("queue"))) {
+      if (message.includes("when") || message.includes("time")) {
+        return "I'm usually online in the evenings, around 7-11pm. Want to queue up then?";
+      }
+      if (message.includes("rank") || message.includes("elo") || message.includes("level")) {
+        return "I've been grinding ranked lately. What rank are you at? We could team up!";
+      }
+      return "I'm down! That sounds fun. Let's coordinate and get a game going.";
+    }
+    
+    // Generic question response
+    return "That's a great question! I'd love to help with that. Want to discuss it more?";
+  }
+  
+  // Handle statements/agreements with context
+  if (message.includes("yes") || message.includes("yeah") || message.includes("sure") || message.includes("cool") || message.includes("awesome") || message.includes("nice")) {
+    return "Awesome! I'm excited about this too. Let's make it happen!";
+  }
+  
+  // Use conversation context if available
+  if (lastMessage && conversationTopic) {
+    if (topic === "Sports") {
+      return "That sounds great! I'm definitely interested. Let's coordinate the details.";
+    }
+    if (topic === "Education") {
+      return "I'm on board with that! Want to set up a time to work on it together?";
+    }
+  }
+  
+  // Topic-specific default responses
+  if (topic === "Education") {
+    return "That's a great idea! I'm always looking for study accountability partners. Want to sync up?";
+  } else if (topic === "Sports") {
+    return "I'm down! What day works best for everyone? Let's make it happen.";
+  } else if (topic === "Travel") {
+    return "I'd love to join! When are you thinking? This sounds like it could be really fun.";
+  } else if (topic === "Gaming") {
+    return "I'm usually online in the evenings. Want to queue up?";
+  }
+  
+  // Generic friendly response
+  return "Thanks for sharing! I'm looking forward to connecting with everyone in this group.";
+}
+
+/**
+ * Extract topic/theme from conversation history
+ */
+function extractTopicFromHistory(history) {
+  if (!history || history.length === 0) return null;
+  const recentText = history.slice(-3).map(m => m.text).join(" ").toLowerCase();
+  if (recentText.includes("study") || recentText.includes("learn")) return "study";
+  if (recentText.includes("run") || recentText.includes("game") || recentText.includes("sport")) return "activity";
+  if (recentText.includes("travel") || recentText.includes("trip")) return "travel";
+  return null;
 }
 
 function buildMatchFromGemini(item, topic, index) {
@@ -882,6 +1661,10 @@ function renderNetworkWindow(match) {
     <div class="messages" id="messageThread">
       ${match.messages.map((msg) => buildMessageBubble(msg)).join("")}
     </div>
+    <div id="typingIndicator" style="display: none;" class="message typing">
+      <strong id="typingAuthor">Someone</strong>
+      <p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>
+    </div>
     <form class="chat-input" id="networkChatForm">
       <input type="text" id="networkMessageInput" placeholder="Share an update..." autocomplete="off" />
       <button class="btn btn-primary" type="submit">Send</button>
@@ -896,16 +1679,205 @@ function renderNetworkWindow(match) {
     });
   });
 
-  document.getElementById("networkChatForm")?.addEventListener("submit", (event) => {
+  document.getElementById("networkChatForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const input = document.getElementById("networkMessageInput");
     if (!input?.value.trim()) return;
-    appendMessage(match.id, {
-      author: loadProfile().displayName || "You",
-      role: "me",
-      text: input.value.trim(),
-    });
+    
+    const userMessage = input.value.trim();
+    const profile = loadProfile();
+    
+    // Clear input immediately
     input.value = "";
+    input.disabled = true; // Disable input while waiting for AI response
+    
+    // Add user message to match and save immediately
+    appendMessage(match.id, {
+      author: profile.displayName || "You",
+      role: "me",
+      text: userMessage,
+    });
+    
+    // Show user message immediately by appending to DOM
+    const messageThread = document.getElementById("messageThread");
+    if (messageThread) {
+      const userBubble = buildMessageBubble({
+        author: profile.displayName || "You",
+        role: "me",
+        text: userMessage,
+      });
+      messageThread.insertAdjacentHTML("beforeend", userBubble);
+      messageThread.scrollTop = messageThread.scrollHeight;
+    }
+    
+    // Show typing indicator BELOW the user message
+    const typingIndicator = document.getElementById("typingIndicator");
+    const typingAuthor = document.getElementById("typingAuthor");
+    const respondingMember = match.members[0] || "Group Member";
+    if (typingIndicator && typingAuthor) {
+      typingAuthor.textContent = respondingMember.split("·")[0].trim();
+      typingIndicator.style.display = "block";
+      // Scroll to show typing indicator
+      const messagesContainer = document.querySelector(".messages-container");
+      if (messagesContainer) {
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+      }
+    }
+    
+    // Generate AI response if AI is enabled
+    const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+    if (AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl)) {
+      try {
+        // Get conversation history
+        const savedMatches = loadSavedMatches();
+        const currentMatch = savedMatches.find(m => m.id === match.id);
+        const conversationHistory = (currentMatch?.messages || []).slice(-5); // Last 5 messages for context
+        
+        // Build prompt for AI response with better context
+        const membersList = match.members.map(m => {
+          const parts = m.split("·");
+          return parts.length > 1 ? `${parts[0].trim()} (${parts[1].trim()})` : m;
+        }).join(", ");
+        
+        const contextPrompt = `You are ${match.members[0] || "a group member"} participating in a group chat for "${match.title}".
+
+GROUP CONTEXT:
+- Topic: ${match.topic}
+- Description: ${match.summary}
+- Group members: ${membersList}
+- Group tags/interests: ${match.tags.join(", ")}
+
+RECENT CONVERSATION:
+${conversationHistory.length > 0 
+  ? conversationHistory.map(m => `${m.author}: ${m.text}`).join("\n")
+  : "This is the start of the conversation."}
+
+USER'S MESSAGE: "${userMessage}"
+
+INSTRUCTIONS:
+- Respond as ${match.members[0] || "a group member"} would naturally respond
+- Be helpful, friendly, and contextually relevant
+- Answer questions directly if asked
+- Show enthusiasm and engagement
+- Keep responses concise (1-2 sentences, max 3)
+- Match the tone and style of the group (${match.tags.join(", ")})
+- If asked a personal question (like "what is your name"), respond naturally based on your role in the group
+
+Your response:`;
+        
+        const aiResponse = await aiService.callAPI([{
+          role: "user",
+          content: contextPrompt
+        }], { max_tokens: 150 });
+        
+        // Hide typing indicator first
+        if (typingIndicator) typingIndicator.style.display = "none";
+        
+        // Add AI response
+        if (aiResponse && aiResponse.trim()) {
+          // Use first member name as AI responder, or generate a name
+          const aiAuthor = match.members[0] || "Group Member";
+          appendMessage(match.id, {
+            author: aiAuthor,
+            role: "them",
+            text: aiResponse.trim(),
+          });
+          
+          // Append response to DOM immediately (below typing indicator)
+          if (messageThread) {
+            const responseBubble = buildMessageBubble({
+              author: aiAuthor,
+              role: "them",
+              text: aiResponse.trim(),
+            });
+            messageThread.insertAdjacentHTML("beforeend", responseBubble);
+            const messagesContainer = document.querySelector(".messages-container");
+            if (messagesContainer) {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          }
+        } else {
+          // Empty response - provide fallback
+          const fallbackResponse = generateFallbackChatResponse(match, userMessage, conversationHistory, match.members[0]);
+          appendMessage(match.id, {
+            author: match.members[0] || "Group Member",
+            role: "them",
+            text: fallbackResponse,
+          });
+          
+          if (messageThread) {
+            const responseBubble = buildMessageBubble({
+              author: match.members[0] || "Group Member",
+              role: "them",
+              text: fallbackResponse,
+            });
+            messageThread.insertAdjacentHTML("beforeend", responseBubble);
+            const messagesContainer = document.querySelector(".messages-container");
+            if (messagesContainer) {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("AI chat error:", error);
+        // Hide typing indicator
+        if (typingIndicator) typingIndicator.style.display = "none";
+        
+        // Fallback: Generate a reasonable response using rule-based system
+        const savedMatches = loadSavedMatches();
+        const currentMatch = savedMatches.find(m => m.id === match.id);
+        const conversationHistory = (currentMatch?.messages || []).slice(-5);
+        const fallbackResponse = generateFallbackChatResponse(match, userMessage, conversationHistory, match.members[0]);
+        
+        appendMessage(match.id, {
+          author: match.members[0] || "Group Member",
+          role: "them",
+          text: fallbackResponse,
+        });
+        
+        if (messageThread) {
+          const responseBubble = buildMessageBubble({
+            author: match.members[0] || "Group Member",
+            role: "them",
+            text: fallbackResponse,
+          });
+          messageThread.insertAdjacentHTML("beforeend", responseBubble);
+          const messagesContainer = document.querySelector(".messages-container");
+          if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+        }
+      }
+    } else {
+      // Hide typing indicator
+      if (typingIndicator) typingIndicator.style.display = "none";
+      
+      // No AI - just add a placeholder response
+      const fallbackResponse = generateFallbackChatResponse(match, userMessage, [], match.members[0]);
+      appendMessage(match.id, {
+        author: match.members[0] || "Group Member",
+        role: "them",
+        text: fallbackResponse,
+      });
+      
+      if (messageThread) {
+        const responseBubble = buildMessageBubble({
+          author: match.members[0] || "Group Member",
+          role: "them",
+          text: fallbackResponse,
+        });
+        messageThread.insertAdjacentHTML("beforeend", responseBubble);
+        const messagesContainer = document.querySelector(".messages-container");
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+    }
+    
+    input.disabled = false; // Re-enable input
+    input.focus();
     renderNetworkList();
   });
 
@@ -935,9 +1907,10 @@ function appendMessage(matchId, message) {
 /* Shared utilities */
 function loadProfile() {
   try {
-    return { fullName: "", displayName: "", city: "", photo: "", bio: "", aboutTags: [], lookingTags: [], ...JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "{}") };
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "{}");
+    return { ...defaultProfile, ...stored };
   } catch {
-    return { fullName: "", displayName: "", city: "", photo: "", bio: "", aboutTags: [], lookingTags: [] };
+    return { ...defaultProfile };
   }
 }
 
@@ -1017,3 +1990,130 @@ function prettify(text) {
     .trim();
 }
 
+function setStatusMessage(id, message) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.textContent = message;
+}
+
+// AI Feature Setup Functions
+function setupAIFeatures() {
+  // Check if AI service is available
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (!aiService) {
+    return;
+  }
+
+  // Check if proxy is configured (most secure - no key needed)
+  const proxyMeta = document.querySelector('meta[name="vibelink-gemini-proxy"]')?.content;
+  const proxyEnv = window.VIBELINK_GEMINI_PROXY;
+  if (proxyMeta || proxyEnv) {
+    // Proxy is configured - no need to show API key prompt
+    console.log("VibeLink: Proxy detected, skipping API key prompt");
+    return;
+  }
+
+  // Check if user has saved their own API key
+  const apiKey = aiService.getApiKeyFromEnv();
+  if (!apiKey) {
+    // No proxy and no saved key - show API key input prompt
+    showAPIKeyPrompt();
+  } else {
+    aiService.init(apiKey);
+  }
+}
+
+function setupAITextAnalysis() {
+  // Add analyze button next to natural language input if it exists
+  const nlInput = document.getElementById("naturalLanguagePreferences");
+  if (nlInput && !document.getElementById("analyzeTextBtn")) {
+    const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+    if (!aiService) return;
+    
+    const analyzeBtn = document.createElement("button");
+    analyzeBtn.type = "button";
+    analyzeBtn.id = "analyzeTextBtn";
+    analyzeBtn.className = "btn btn-inline";
+    analyzeBtn.textContent = "Analyze with AI";
+    analyzeBtn.style.marginTop = "0.5rem";
+    analyzeBtn.addEventListener("click", async () => {
+      const text = nlInput.value.trim();
+      if (!text) {
+        setStatusMessage("profileStatus", "Please enter some text to analyze.");
+        return;
+      }
+      if (!aiService || !aiService.apiKey) {
+        setStatusMessage("profileStatus", "AI service not configured. Please set your Gemini API key.");
+        showAPIKeyPrompt();
+        return;
+      }
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = "Analyzing...";
+      try {
+        const analysis = await aiService.analyzeTextInput(text);
+        if (analysis && analysis.extracted_tags) {
+          analysis.extracted_tags.forEach(tag => {
+            if (tag && !tagState.looking.has(normalize(tag))) {
+              addTag("looking", tag);
+            }
+          });
+          setStatusMessage("profileStatus", `AI extracted ${analysis.extracted_tags.length} tags from your text! ✨`);
+        }
+      } catch (error) {
+        setStatusMessage("profileStatus", "AI analysis failed. Check your Gemini API key.");
+        console.error(error);
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Analyze with AI";
+      }
+    });
+    const label = nlInput.closest("label");
+    if (label) {
+      label.appendChild(analyzeBtn);
+    } else {
+      nlInput.parentElement?.appendChild(analyzeBtn);
+    }
+  }
+}
+
+function showAPIKeyPrompt() {
+  // Create a simple modal or inline prompt for API key
+  const existing = document.getElementById("apiKeyPrompt");
+  if (existing) return;
+
+  const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+  if (!aiService) return;
+
+  const prompt = document.createElement("div");
+  prompt.id = "apiKeyPrompt";
+  prompt.className = "api-key-prompt";
+  prompt.innerHTML = `
+    <div class="api-key-content">
+      <h3>Enable AI Features</h3>
+      <p>Enter your Google Gemini API key to enable intelligent matching and text analysis.</p>
+      <input type="password" id="apiKeyInput" placeholder="AIza..." />
+      <div class="api-key-actions">
+        <button id="saveApiKeyBtn" class="btn btn-primary">Save Key</button>
+        <button id="skipApiKeyBtn" class="btn btn-ghost">Skip (Use Basic Matching)</button>
+      </div>
+      <p class="api-key-hint">Your key is stored locally and never sent to our servers.</p>
+      <p class="api-key-hint"><a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent-2);">Get your free API key from Google AI Studio</a></p>
+    </div>
+  `;
+
+  document.body.appendChild(prompt);
+
+  document.getElementById("saveApiKeyBtn")?.addEventListener("click", () => {
+    const key = document.getElementById("apiKeyInput")?.value.trim();
+    if (key) {
+      aiService.saveApiKey(key);
+      aiService.init(key);
+      prompt.remove();
+      setStatusMessage("profileStatus", "AI features enabled! ✨");
+    }
+  });
+
+  document.getElementById("skipApiKeyBtn")?.addEventListener("click", () => {
+    prompt.remove();
+  });
+}
