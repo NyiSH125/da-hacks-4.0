@@ -5,6 +5,12 @@ const STORAGE_KEYS = {
 
 const AI_ENABLED = true; // Toggle AI features on/off
 
+// Firebase services (initialized after Firebase loads)
+let firebaseAuth = null;
+let firestoreDb = null;
+let currentUser = null;
+let FIREBASE_ENABLED = false;
+
 // AI_SERVICE is loaded from ai-service.js (declared there as const)
 // We just reference it, don't redeclare it
 
@@ -275,8 +281,43 @@ const DISCOVER_COPY = {
   },
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   console.log("VibeLink: DOMContentLoaded fired");
+  
+  // Initialize Firebase first
+  try {
+    if (typeof initFirebase === 'function') {
+      const firebaseServices = initFirebase();
+      if (firebaseServices) {
+        firebaseAuth = firebaseServices.auth;
+        firestoreDb = firebaseServices.db;
+        FIREBASE_ENABLED = true;
+        console.log("VibeLink: Firebase initialized successfully");
+        
+        // Set up auth state listener
+        firebaseAuth.onAuthStateChanged((user) => {
+          currentUser = user;
+          if (user) {
+            console.log("VibeLink: User signed in:", user.uid);
+            // Sync profile from Firestore if user is logged in
+            syncProfileFromFirestore();
+            // Update auth UI
+            updateAuthUI();
+          } else {
+            console.log("VibeLink: User signed out");
+            // Fall back to localStorage
+            updateAuthUI();
+          }
+        });
+      } else {
+        console.warn("VibeLink: Firebase initialization failed - using localStorage only");
+      }
+    } else {
+      console.warn("VibeLink: Firebase not available - using localStorage only");
+    }
+  } catch (error) {
+    console.error("VibeLink: Firebase setup error:", error);
+  }
   
   // Initialize AI service if available
   if (AI_ENABLED) {
@@ -623,9 +664,9 @@ function highlightNav(page) {
 }
 
 /* Home */
-function initHomePage() {
+async function initHomePage() {
   highlightNav("home");
-  const profile = loadProfile();
+  const profile = await loadProfile();
   const cards = document.querySelectorAll("[data-category-card]");
   cards.forEach((card) => {
     const category = card.dataset.categoryCard;
@@ -640,9 +681,13 @@ function initHomePage() {
 }
 
 /* Profile */
-function initProfilePage() {
+async function initProfilePage() {
   highlightNav("profile");
-  const profile = loadProfile();
+  
+  // Set up authentication UI
+  setupAuthUI();
+  
+  const profile = await loadProfile();
   setInputValue("fullName", profile.fullName);
   setInputValue("displayName", profile.displayName);
   setInputValue("city", profile.city);
@@ -665,8 +710,9 @@ function initProfilePage() {
 
 async function handleProfileSave(event) {
   event.preventDefault();
+  const currentProfile = await loadProfile();
   const profile = {
-    ...loadProfile(),
+    ...currentProfile,
     fullName: getValue("fullName"),
     displayName: getValue("displayName"),
     city: getValue("city"),
@@ -699,7 +745,7 @@ async function handleProfileSave(event) {
     }
   }
   
-  saveProfile(profile);
+  await saveProfile(profile);
   setStatusMessage("profileStatus", "Profile saved ✨");
 }
 
@@ -721,13 +767,15 @@ function initCategoryPage() {
 
   hydratePreferenceSelect(category);
   document.getElementById("generateMatchesBtn")?.addEventListener("click", () => renderCategoryMatches(category));
-  renderCategoryMatches(category);
+  // Don't auto-generate matches on page load - wait for user to click button
+  // Clear status message on init
+  setStatusMessage("categoryStatus", "");
 }
 
 // Removed duplicate functions - using the correct ones at line 1431
 
-function toggleCategory(category, isChecked) {
-  const profile = loadProfile();
+async function toggleCategory(category, isChecked) {
+  const profile = await loadProfile();
   const categories = new Set(profile.categories);
   if (isChecked) {
     categories.add(category);
@@ -735,15 +783,16 @@ function toggleCategory(category, isChecked) {
     categories.delete(category);
   }
   profile.categories = Array.from(categories);
-  saveProfile(profile);
+  await saveProfile(profile); // This will save to Firestore if user is signed in
   renderSelectedCategories(profile.categories);
+  console.log(`✅ Category "${category}" ${isChecked ? 'added' : 'removed'}. Categories:`, profile.categories);
 }
 
-function ensureCategorySelected(category) {
-  const profile = loadProfile();
+async function ensureCategorySelected(category) {
+  const profile = await loadProfile();
   if (profile.categories.includes(category)) return;
   profile.categories = [...profile.categories, category];
-  saveProfile(profile);
+  await saveProfile(profile);
   renderSelectedCategories(profile.categories);
 }
 
@@ -772,7 +821,7 @@ function setInputValue(id, value) {
 
 async function handleProfileSave(event) {
   event.preventDefault();
-  const profile = loadProfile();
+  const profile = await loadProfile();
   profile.fullName = getValue("fullName");
   profile.displayName = getValue("displayName");
   profile.city = getValue("city");
@@ -804,7 +853,7 @@ async function handleProfileSave(event) {
     }
   }
   
-  saveProfile(profile);
+  await saveProfile(profile);
   setStatusMessage("profileStatus", "Profile saved ✨");
 }
 
@@ -829,22 +878,22 @@ function setupTagPanels(profile) {
 
 function bindTagControls() {
   document.querySelectorAll("[data-add-tag]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const type = button.dataset.addTag;
       const input = document.querySelector(`[data-tag-input="${type}"]`);
       if (input?.value.trim()) {
-        addTag(type, input.value.trim());
+        await addTag(type, input.value.trim());
         input.value = "";
       }
     });
   });
 
   document.querySelectorAll("[data-tag-input]").forEach((input) => {
-    input.addEventListener("keydown", (event) => {
+    input.addEventListener("keydown", async (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         if (input.value.trim()) {
-          addTag(input.dataset.tagInput, input.value.trim());
+          await addTag(input.dataset.tagInput, input.value.trim());
           input.value = "";
         }
       }
@@ -856,8 +905,17 @@ function bindTagControls() {
 
 function renderTagSuggestions(type) {
   const container = document.querySelector(`[data-tag-suggestions="${type}"]`);
-  if (!container) return;
+  if (!container) {
+    console.warn(`Tag suggestions container not found for type: ${type}`);
+    return;
+  }
   container.innerHTML = "";
+  
+  if (!TAG_SUGGESTIONS[type] || !Array.isArray(TAG_SUGGESTIONS[type])) {
+    console.warn(`No tag suggestions found for type: ${type}`);
+    return;
+  }
+  
   TAG_SUGGESTIONS[type].forEach((tag) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -882,12 +940,41 @@ function toggleTag(type, label, button) {
   syncSuggestionStates(type);
 }
 
-function addTag(type, label) {
+async function addTag(type, label) {
   const key = normalize(label);
   if (!key || tagState[type].has(key)) return;
+  
   tagState[type].set(key, prettify(label));
   renderSelectedTags(type);
   syncSuggestionStates(type);
+  
+  // If AI is enabled and this is a custom tag (not in suggestions), analyze it
+  if (AI_ENABLED && type === "looking") {
+    const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+    if (aiService && (aiService.apiKey || aiService.proxyUrl)) {
+      const suggestions = TAG_SUGGESTIONS[type] || [];
+      const isCustomTag = !suggestions.some(s => normalize(s) === key);
+      
+      if (isCustomTag) {
+        try {
+          // Analyze the custom tag to extract semantic meaning
+          const analysis = await aiService.analyzeTextInput(label);
+          if (analysis && analysis.extracted_tags) {
+            console.log(`AI analyzed custom tag "${label}":`, analysis.extracted_tags);
+            // Store AI insights for this tag
+            const profile = await loadProfile();
+            if (!profile.tagInsights) profile.tagInsights = {};
+            if (!profile.tagInsights[type]) profile.tagInsights[type] = {};
+            profile.tagInsights[type][key] = analysis;
+            await saveProfile(profile);
+          }
+        } catch (error) {
+          console.warn("AI analysis for custom tag failed:", error);
+          // Continue without AI analysis
+        }
+      }
+    }
+  }
 }
 
 function renderSelectedTags(type) {
@@ -934,8 +1021,18 @@ function initDiscoverPage() {
   document.getElementById("discoverReset")?.addEventListener("click", () => {
     document.getElementById("discoverForm")?.reset();
     setStatusMessage("discoverStatus", "Preferences cleared.");
+    // Clear the matches container when resetting
+    const container = document.getElementById("discoverMatches");
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <h3>No matches yet</h3>
+          <p>Fill the form above and press "Generate matches".</p>
+        </div>
+      `;
+    }
   });
-  renderDiscoverMatches(topic);
+  // Don't auto-generate matches on page load - wait for user to click button
 }
 
 function renderDiscoverHero(topic) {
@@ -987,44 +1084,109 @@ async function renderDiscoverMatches(topic) {
   container.innerHTML = `
     <div class="empty-state">
       <h3>Generating suggestions…</h3>
-      <p>We're asking Gemini and the VibeLink bots to assemble a pod for you.</p>
+      <p>We're searching for real users and AI matches for you.</p>
     </div>
   `;
-  const profile = loadProfile();
+  const profile = await loadProfile();
   const formData = new FormData(document.getElementById("discoverForm"));
   const preferenceTokens = Array.from(formData.values())
     .map((value) => value.toString().trim().toLowerCase())
     .filter(Boolean);
 
-  const matches = MATCH_LIBRARY.filter((match) => match.topic === topic).map((match) => {
-    const score = calculateScore(match, profile, preferenceTokens);
-    return { ...match, score };
-  });
-
-  const aiMatches = await fetchGeminiMatches(topic, profile, preferenceTokens);
-
   container.innerHTML = "";
-  const combinedMatches = [...matches, ...aiMatches];
-  if (!combinedMatches.length) {
+  
+  // Step 1: Try to find real users first (if Firebase is enabled and user is logged in)
+  let realUserMatches = [];
+  if (FIREBASE_ENABLED && currentUser) {
+    setStatusMessage("discoverStatus", "Searching for real users with similar interests…");
+    console.log("🔍 Starting real user search...");
+    console.log("  - Firebase enabled:", FIREBASE_ENABLED);
+    console.log("  - Current user:", currentUser?.uid);
+    console.log("  - Topic:", topic);
+    console.log("  - User profile categories:", profile.categories);
+    realUserMatches = await findRealUserMatches(topic, profile, preferenceTokens);
+    console.log(`👥 Found ${realUserMatches.length} real user matches`);
+    if (realUserMatches.length === 0) {
+      console.log("⚠️ No real users found. Possible reasons:");
+      console.log("  1. No other users have selected this category:", topic);
+      console.log("  2. Other users haven't saved their profiles to Firestore");
+      console.log("  3. Firestore query failed (check for errors above)");
+    }
+  } else {
+    console.log("⚠️ Real user matching disabled");
+    console.log("  - Firebase enabled:", FIREBASE_ENABLED);
+    console.log("  - Current user:", currentUser ? "signed in" : "NOT signed in");
+    if (!FIREBASE_ENABLED) console.log("  → Firebase not initialized");
+    if (!currentUser) console.log("  → User not signed in - sign in to match with real users");
+  }
+
+  // Step 2: Get AI-generated matches (only if not rate limited)
+  let aiMatches = [];
+  try {
+    setStatusMessage("discoverStatus", "Generating AI matches…");
+    aiMatches = await fetchGeminiMatches(topic, profile, preferenceTokens);
+    console.log(`🤖 Found ${aiMatches.length} AI-generated matches`);
+  } catch (error) {
+    console.warn("⚠️ AI matching failed (rate limited or unavailable):", error.message);
+    // Continue without AI matches
+    aiMatches = [];
+  }
+
+  // Step 3: Get static library matches (only if no real users found)
+  let libraryMatches = [];
+  if (realUserMatches.length === 0) {
+    libraryMatches = MATCH_LIBRARY.filter((match) => match.topic === topic).map((match) => {
+      const score = calculateScore(match, profile, preferenceTokens);
+      return { ...match, score, isHardCoded: true }; // Mark as hard-coded
+    });
+    console.log(`📚 Found ${libraryMatches.length} library matches (hard-coded)`);
+  } else {
+    console.log("✅ Real users found - skipping hard-coded library matches");
+  }
+
+  // Combine matches: REAL USERS FIRST (always prioritize), then AI, then library only if no real users
+  const combinedMatches = [...realUserMatches, ...aiMatches, ...libraryMatches];
+
+  // If no good real user matches (65%+ threshold), show AI bots as fallback
+  if (realUserMatches.length === 0 && combinedMatches.length === 0) {
+    // Fallback to AI bots if no compatible real users found
     const botMatches = generateBotMatches(topic, profile, preferenceTokens);
     if (botMatches.length) {
       botMatches.forEach((match) => container.appendChild(buildMatchCard(match)));
       setStatusMessage(
         "discoverStatus",
-        "No live pods right now, so VibeLink spun up AI buddy groups with Sarah, Ryan, or Alex."
+        "No compatible users found (need 65%+ similarity). Here are AI buddy groups to get started!"
       );
     } else {
-      container.appendChild(buildEmptyState("No matches yet", "Try different preferences."));
-      setStatusMessage("discoverStatus", "No matches found.");
+      container.appendChild(buildEmptyState("No matches yet", "Try different preferences or update your profile tags."));
+      setStatusMessage("discoverStatus", "No matches found. Update your profile to find better matches.");
     }
     return;
   }
+  
+  // If we have real users but they're low quality (<70%), also show bots as options
+  if (realUserMatches.length > 0 && realUserMatches.every(m => m.score < 70)) {
+    const botMatches = generateBotMatches(topic, profile, preferenceTokens);
+    combinedMatches.push(...botMatches);
+    setStatusMessage("discoverStatus", `Found ${realUserMatches.length} user${realUserMatches.length > 1 ? 's' : ''} with some compatibility. AI bots also available.`);
+  }
 
+  // Sort by score and render
   combinedMatches
     .sort((a, b) => b.score - a.score)
     .forEach((match) => container.appendChild(buildMatchCard(match)));
 
-  setStatusMessage("discoverStatus", `Showing ${combinedMatches.length} match${combinedMatches.length > 1 ? "es" : ""}.`);
+  const matchCount = combinedMatches.length;
+  const realUserCount = realUserMatches.length;
+  const hardCodedCount = combinedMatches.filter(m => m.isHardCoded).length;
+  
+  let statusMsg = `Showing ${matchCount} match${matchCount > 1 ? "es" : ""}`;
+  if (realUserCount > 0) {
+    statusMsg += ` (${realUserCount} real user${realUserCount > 1 ? "s" : ""})`;
+  } else if (hardCodedCount > 0) {
+    statusMsg += ` (${hardCodedCount} sample match${hardCodedCount > 1 ? "es" : ""} - no real users found yet)`;
+  }
+  setStatusMessage("discoverStatus", statusMsg);
 }
 
 async function renderCategoryMatches(category) {
@@ -1032,7 +1194,12 @@ async function renderCategoryMatches(category) {
   const select = document.getElementById("preferenceSelect");
   if (!container || !select) return;
   const preference = select.value || "all";
-  const profile = loadProfile();
+  
+  // Show loading state immediately when user clicks button
+  setStatusMessage("categoryStatus", "Generating matches...");
+  container.innerHTML = '<div class="loading-state">Analyzing compatibility...</div>';
+  
+  const profile = await loadProfile();
   const matches = MATCH_TEMPLATES.filter((match) => match.category === category).filter((match) => {
     if (preference === "all") return true;
     return match.keywords.includes(preference);
@@ -1145,10 +1312,30 @@ function buildMatchCard(match, score = null, aiInsights = null, explanation = nu
     `;
   }
   
+  // Add indicator for real users vs hard-coded matches
+  const matchTypeBadge = match.isRealUser 
+    ? '<span class="match-badge real-user">👤 Real User (AI-Matched)</span>'
+    : match.isHardCoded 
+    ? '<span class="match-badge hard-coded">📚 Sample Match</span>'
+    : '';
+  
+  // Add AI insights if available (for real user matches enhanced by AI)
+  const aiInsightsSection = match.aiInsights ? `
+    <div class="ai-insights" style="margin-top: 1rem; padding: 1rem; background: var(--surface-alt); border-radius: 8px;">
+      <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--accent);">🤖 AI-Powered Match Analysis:</p>
+      ${match.aiExplanation ? `<p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 0.5rem;">${match.aiExplanation}</p>` : ''}
+      ${match.aiInsights.match_reasons ? `
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem; color: var(--text); font-size: 0.9rem;">
+          ${match.aiInsights.match_reasons.slice(0, 3).map(reason => `<li>${reason}</li>`).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  ` : '';
+  
   article.innerHTML = `
     <header>
       <div>
-        <p class="eyebrow">${match.topic}</p>
+        <p class="eyebrow">${match.topic} ${matchTypeBadge}</p>
         <h3>${match.title}</h3>
       </div>
       <div class="compat-score">${match.score}%</div>
@@ -1159,17 +1346,22 @@ function buildMatchCard(match, score = null, aiInsights = null, explanation = nu
     <div class="member-stack">
       ${match.members.map((member) => `<span class="member">${member}</span>`).join("")}
     </div>
+    ${aiInsightsSection}
     ${aiSection}
     <button class="btn btn-primary" data-save-match="${match.id}">Save invite</button>
   `;
 
-  article.querySelector("[data-save-match]")?.addEventListener("click", () => {
-    const saved = saveMatch(match);
+  article.querySelector("[data-save-match]")?.addEventListener("click", async () => {
+    const saved = await saveMatch(match);
   const button = article.querySelector("[data-save-match]");
     if (saved) {
       button.textContent = "Saved to Network";
     button.classList.add("accepted");
       button.disabled = true;
+      
+      // Note: Real user matching would require a backend service
+      // For now, all matches are saved locally
+      
       setStatusMessage("discoverStatus", `${match.title} added to Network.`);
     } else {
       button.textContent = "Already saved";
@@ -1186,6 +1378,7 @@ async function fetchGeminiMatches(topic, profile, preferenceTokens) {
   if (aiService && (aiService.apiKey || aiService.proxyUrl)) {
     try {
       // Use the AI service to generate matches
+      // Note: This may fail due to rate limiting - that's OK, we'll continue without AI matches
       const prompt = composeGeminiPrompt(topic, profile, preferenceTokens);
       const response = await aiService.callAPI([{
         role: "user",
@@ -1198,7 +1391,13 @@ async function fetchGeminiMatches(topic, profile, preferenceTokens) {
         return parsed.map((item, index) => buildMatchFromGemini(item, topic, index)).filter(Boolean);
       }
     } catch (error) {
-      console.warn("AI_SERVICE Gemini request failed, falling back to proxy", error);
+      // Rate limiting or other errors - gracefully fail
+      if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+        console.warn("⚠️ Gemini API rate limited - skipping AI matches for now");
+      } else {
+        console.warn("⚠️ AI_SERVICE Gemini request failed:", error.message);
+      }
+      return []; // Return empty array instead of falling through
     }
   }
   
@@ -1241,7 +1440,12 @@ async function fetchGeminiMatches(topic, profile, preferenceTokens) {
       }
     }
     if (!response.ok) {
-      console.warn("Gemini API error", await response.text());
+      const errorText = await response.text();
+      if (response.status === 429) {
+        console.warn("⚠️ Gemini API rate limited (429) - skipping AI matches");
+      } else {
+        console.warn("⚠️ Gemini API error:", response.status, errorText);
+      }
       return [];
     }
     const data = await response.json();
@@ -1604,11 +1808,11 @@ function renderNetworkStats() {
 
 let currentChatId = null;
 
-function renderNetworkList() {
+async function renderNetworkList() {
   const list = document.getElementById("networkList");
   const windowPane = document.getElementById("networkWindow");
   if (!list || !windowPane) return;
-  const matches = loadSavedMatches();
+  const matches = await loadSavedMatches();
   list.innerHTML = "";
   if (!matches.length) {
     list.appendChild(buildEmptyState("No saved chats yet", "Save a match on Discover to unlock chats."));
@@ -1642,6 +1846,13 @@ function renderNetworkList() {
 function renderNetworkWindow(match) {
   const windowPane = document.getElementById("networkWindow");
   if (!windowPane) return;
+  
+  // Clean up previous listener if exists
+  if (window.currentMatchListener) {
+    window.currentMatchListener();
+    window.currentMatchListener = null;
+  }
+  
   windowPane.innerHTML = `
     <div class="chat-header">
       <div>
@@ -1685,18 +1896,20 @@ function renderNetworkWindow(match) {
     if (!input?.value.trim()) return;
     
     const userMessage = input.value.trim();
-    const profile = loadProfile();
+    const profile = await loadProfile();
     
     // Clear input immediately
     input.value = "";
     input.disabled = true; // Disable input while waiting for AI response
     
     // Add user message to match and save immediately
-    appendMessage(match.id, {
+    const userMessageObj = {
       author: profile.displayName || "You",
+      authorId: currentUser?.uid || null,
       role: "me",
       text: userMessage,
-    });
+    };
+    await appendMessage(match.id, userMessageObj);
     
     // Show user message immediately by appending to DOM
     const messageThread = document.getElementById("messageThread");
@@ -1707,8 +1920,15 @@ function renderNetworkWindow(match) {
         text: userMessage,
       });
       messageThread.insertAdjacentHTML("beforeend", userBubble);
-      messageThread.scrollTop = messageThread.scrollHeight;
+      // Scroll to bottom with a slight delay to ensure DOM is updated
+      setTimeout(() => {
+        messageThread.scrollTop = messageThread.scrollHeight;
+      }, 100);
     }
+    
+    // Re-enable input
+    input.disabled = false;
+    input.focus();
     
     // Show typing indicator BELOW the user message
     const typingIndicator = document.getElementById("typingIndicator");
@@ -1731,7 +1951,7 @@ function renderNetworkWindow(match) {
     if (AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl)) {
       try {
         // Get conversation history
-        const savedMatches = loadSavedMatches();
+        const savedMatches = await loadSavedMatches();
         const currentMatch = savedMatches.find(m => m.id === match.id);
         const conversationHistory = (currentMatch?.messages || []).slice(-5); // Last 5 messages for context
         
@@ -1779,7 +1999,7 @@ Your response:`;
         if (aiResponse && aiResponse.trim()) {
           // Use first member name as AI responder, or generate a name
           const aiAuthor = match.members[0] || "Group Member";
-          appendMessage(match.id, {
+          await appendMessage(match.id, {
             author: aiAuthor,
             role: "them",
             text: aiResponse.trim(),
@@ -1801,8 +2021,9 @@ Your response:`;
         } else {
           // Empty response - provide fallback
           const fallbackResponse = generateFallbackChatResponse(match, userMessage, conversationHistory, match.members[0]);
-          appendMessage(match.id, {
+          await appendMessage(match.id, {
             author: match.members[0] || "Group Member",
+            authorId: null, // Fallback response
             role: "them",
             text: fallbackResponse,
           });
@@ -1826,12 +2047,12 @@ Your response:`;
         if (typingIndicator) typingIndicator.style.display = "none";
         
         // Fallback: Generate a reasonable response using rule-based system
-        const savedMatches = loadSavedMatches();
+        const savedMatches = await loadSavedMatches();
         const currentMatch = savedMatches.find(m => m.id === match.id);
         const conversationHistory = (currentMatch?.messages || []).slice(-5);
         const fallbackResponse = generateFallbackChatResponse(match, userMessage, conversationHistory, match.members[0]);
         
-        appendMessage(match.id, {
+        await appendMessage(match.id, {
           author: match.members[0] || "Group Member",
           role: "them",
           text: fallbackResponse,
@@ -1856,8 +2077,9 @@ Your response:`;
       
       // No AI - just add a placeholder response
       const fallbackResponse = generateFallbackChatResponse(match, userMessage, [], match.members[0]);
-      appendMessage(match.id, {
+      await appendMessage(match.id, {
         author: match.members[0] || "Group Member",
+        authorId: null, // Fallback response
         role: "them",
         text: fallbackResponse,
       });
@@ -1896,16 +2118,478 @@ function buildMessageBubble(message) {
   `;
 }
 
-function appendMessage(matchId, message) {
-  const matches = loadSavedMatches();
+async function appendMessage(matchId, message) {
+  // Save to Firestore if it's a real match group
+  if (FIREBASE_ENABLED && firestoreDb && matchId.startsWith("match-")) {
+    try {
+      const firestoreMatchId = matchId.replace("match-", "");
+      await firestoreDb.collection("matches").doc(firestoreMatchId).collection("messages").add({
+        ...message,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // Update match's updatedAt
+      await firestoreDb.collection("matches").doc(firestoreMatchId).update({
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return; // Real-time listener will update UI
+    } catch (error) {
+      console.error("Error saving message to Firestore:", error);
+      // Fall through to localStorage
+    }
+  }
+  
+  // Fallback to localStorage for local matches
+  const matches = await loadSavedMatches();
   const match = matches.find((item) => item.id === matchId);
-  if (!match) return;
+  if (!match) {
+    console.warn(`Match not found: ${matchId}`);
+    return;
+  }
+  
+  // Ensure messages array exists
+  if (!match.messages) match.messages = [];
   match.messages = [...match.messages, message];
-  saveMatches(matches);
+  
+  await saveMatches(matches);
+  
+  // Update UI if this match is currently displayed
+  if (window.currentChatId === matchId) {
+    const messageThread = document.getElementById("messageThread");
+    if (messageThread) {
+      const messageBubble = buildMessageBubble(message);
+      messageThread.insertAdjacentHTML("beforeend", messageBubble);
+      setTimeout(() => {
+        messageThread.scrollTop = messageThread.scrollHeight;
+      }, 100);
+    }
+  }
+}
+
+/* Firebase Authentication Functions */
+function setupAuthUI() {
+  const authPrompt = document.getElementById("authPrompt");
+  if (!authPrompt) return;
+  
+  updateAuthUI();
+  
+  // Set up auth form handlers
+  document.getElementById("showSignUpBtn")?.addEventListener("click", () => showAuthForm("signup"));
+  document.getElementById("showSignInBtn")?.addEventListener("click", () => showAuthForm("signin"));
+  document.getElementById("logoutBtn")?.addEventListener("click", handleSignOut);
+}
+
+function updateAuthUI() {
+  const authPrompt = document.getElementById("authPrompt");
+  if (!authPrompt) return;
+
+  if (currentUser && FIREBASE_ENABLED) {
+    // User is signed in
+    authPrompt.style.display = "block";
+    authPrompt.innerHTML = `
+      <div class="user-info">
+        <div class="avatar">${currentUser.email?.charAt(0).toUpperCase() || "U"}</div>
+        <div>
+          <strong>${currentUser.email}</strong>
+          <p class="sync-status">✓ Synced to cloud</p>
+        </div>
+      </div>
+      <button id="logoutBtn" class="btn btn-ghost">Sign Out</button>
+    `;
+    document.getElementById("logoutBtn")?.addEventListener("click", handleSignOut);
+  } else {
+    // User is not signed in
+    authPrompt.style.display = "block";
+    authPrompt.innerHTML = `
+      <p><strong>Sign in to match with real users</strong></p>
+      <p>Create an account to match with real people and chat in real-time!</p>
+      <button id="showSignUpBtn" class="btn btn-primary">Sign Up</button>
+      <button id="showSignInBtn" class="btn btn-ghost">Sign In</button>
+    `;
+    document.getElementById("showSignUpBtn")?.addEventListener("click", () => showAuthForm("signup"));
+    document.getElementById("showSignInBtn")?.addEventListener("click", () => showAuthForm("signin"));
+  }
+}
+
+function showAuthForm(mode) {
+  const authPrompt = document.getElementById("authPrompt");
+  if (!authPrompt) return;
+
+  authPrompt.innerHTML = `
+    <div class="auth-section">
+      <h3>${mode === "signup" ? "Create Account" : "Sign In"}</h3>
+      <form class="auth-form" id="authForm">
+        <label>
+          Email
+          <input type="email" id="authEmail" required />
+        </label>
+        <label>
+          Password
+          <input type="password" id="authPassword" required minlength="6" />
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${mode === "signup" ? "Sign Up" : "Sign In"}</button>
+          <button type="button" class="btn btn-ghost" id="cancelAuthBtn">Cancel</button>
+        </div>
+        <p class="status" id="authStatus" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  `;
+
+  document.getElementById("authForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("authEmail")?.value.trim();
+    const password = document.getElementById("authPassword")?.value;
+    
+    if (!email || !password) {
+      setStatusMessage("authStatus", "Please fill in all fields");
+      return;
+    }
+
+    try {
+      if (mode === "signup") {
+        await handleSignUp(email, password);
+      } else {
+        await handleSignIn(email, password);
+      }
+    } catch (error) {
+      setStatusMessage("authStatus", error.message || "Authentication failed");
+    }
+  });
+
+  document.getElementById("cancelAuthBtn")?.addEventListener("click", () => {
+    updateAuthUI();
+  });
+}
+
+async function handleSignUp(email, password) {
+  if (!firebaseAuth) throw new Error("Firebase not initialized");
+  
+  const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+  const profile = await loadProfile();
+  
+  // Save profile to Firestore
+  if (firestoreDb) {
+    await firestoreDb.collection("users").doc(userCredential.user.uid).set({
+      ...profile,
+      email: userCredential.user.email,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+  
+  setStatusMessage("authStatus", "Account created! Profile synced.");
+  updateAuthUI();
+}
+
+async function handleSignIn(email, password) {
+  if (!firebaseAuth) throw new Error("Firebase not initialized");
+  
+  await firebaseAuth.signInWithEmailAndPassword(email, password);
+  setStatusMessage("authStatus", "Signed in successfully!");
+  updateAuthUI();
+}
+
+async function handleSignOut() {
+  if (!firebaseAuth) return;
+  
+  await firebaseAuth.signOut();
+  updateAuthUI();
+}
+
+async function syncProfileFromFirestore() {
+  if (!FIREBASE_ENABLED || !currentUser || !firestoreDb) return;
+
+  try {
+    const userDoc = await firestoreDb.collection("users").doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      const profileData = userDoc.data();
+      // Merge with default profile
+      const mergedProfile = { ...defaultProfile, ...profileData };
+      // Save to localStorage as cache
+      localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(mergedProfile));
+      // Update UI if on profile page
+      if (document.body.getAttribute("data-page") === "profile") {
+        setInputValue("fullName", mergedProfile.fullName);
+        setInputValue("displayName", mergedProfile.displayName);
+        setInputValue("city", mergedProfile.city);
+        setInputValue("photo", mergedProfile.photo);
+        setInputValue("bio", mergedProfile.bio);
+        setInputValue("naturalLanguagePreferences", mergedProfile.naturalLanguagePreferences || "");
+        // Reload tag panels
+        setupTagPanels(mergedProfile);
+      }
+    }
+  } catch (error) {
+    console.error("Error syncing profile from Firestore:", error);
+  }
+}
+
+/* Real User Matching Functions - AI-Powered Based on Tags, Bio, and Preferences */
+async function findRealUserMatches(topic, userProfile, preferenceTokens = []) {
+  if (!FIREBASE_ENABLED || !currentUser || !firestoreDb) {
+    return []; // Return empty if Firebase not available
+  }
+
+  try {
+    // AI-POWERED MATCHING: Query ALL users and let AI score compatibility
+    // Matching is based on tags, bio, and preferences - NOT categories
+    console.log("🔍 AI-Powered Real User Matching");
+    console.log("📋 Current user profile:");
+    console.log("   - Tags:", [...(userProfile.aboutTags || []), ...(userProfile.lookingTags || [])]);
+    console.log("   - Bio:", userProfile.bio);
+    console.log("   - Preferences:", userProfile.naturalLanguagePreferences);
+    console.log("   - Topic interest:", topic);
+    console.log("🔑 Current user ID:", currentUser.uid);
+    
+    // Query ALL users (or recent users) - AI will filter and score them
+    // Limit to recent users to avoid processing too many
+    const usersSnapshot = await firestoreDb
+      .collection("users")
+      .limit(50) // Get up to 50 users for AI to analyze
+      .get();
+
+    console.log(`👥 Found ${usersSnapshot.size} users in Firestore`);
+    
+    if (usersSnapshot.size === 0) {
+      console.log("❌ No users found in Firestore!");
+      console.log("   → Make sure other users have:");
+      console.log("      1. Signed in");
+      console.log("      2. Saved their profile to Firestore");
+      console.log("   → Check Firestore Console → users collection to verify");
+      return [];
+    }
+    
+    const potentialMatches = [];
+    const userTags = [...(userProfile.aboutTags || []), ...(userProfile.lookingTags || [])].map(normalize);
+    console.log("🏷️ Current user tags:", userTags);
+
+    // First pass: Basic filtering based on tags and bio similarity
+    const candidates = [];
+    usersSnapshot.forEach(doc => {
+      const otherUser = doc.data();
+      // Skip current user
+      if (doc.id === currentUser.uid) {
+        console.log("⏭️ Skipping current user:", doc.id);
+        return;
+      }
+      
+      // Skip users with no profile data
+      if (!otherUser.aboutTags && !otherUser.lookingTags && !otherUser.bio) {
+        return;
+      }
+      
+      const otherTags = [...(otherUser.aboutTags || []), ...(otherUser.lookingTags || [])].map(normalize);
+      const tagOverlap = userTags.filter(tag => otherTags.includes(tag)).length;
+      
+      // Calculate basic similarity score (more sensitive)
+      let baseScore = 30; // Start lower
+      
+      // Tag overlap (more weight for shared tags)
+      const totalUserTags = userTags.length;
+      const totalOtherTags = otherTags.length;
+      if (totalUserTags > 0 && totalOtherTags > 0) {
+        const tagSimilarity = tagOverlap / Math.max(totalUserTags, totalOtherTags);
+        baseScore += Math.round(tagSimilarity * 40); // Up to 40 points for tag similarity
+      }
+      
+      // Bio similarity (simple keyword matching)
+      if (userProfile.bio && otherUser.bio) {
+        const userBioWords = userProfile.bio.toLowerCase().split(/\s+/);
+        const otherBioWords = otherUser.bio.toLowerCase().split(/\s+/);
+        const bioOverlap = userBioWords.filter(word => word.length > 3 && otherBioWords.includes(word)).length;
+        if (bioOverlap > 0) {
+          baseScore += Math.min(20, bioOverlap * 5); // Up to 20 points for bio similarity
+        }
+      }
+      
+      // Preferences match
+      if (preferenceTokens.length > 0) {
+        const preferenceMatch = preferenceTokens.some(token => 
+          otherTags.some(tag => tag.includes(token) || token.includes(tag)) ||
+          (otherUser.bio && otherUser.bio.toLowerCase().includes(token))
+        );
+        if (preferenceMatch) {
+          baseScore += 10;
+        }
+      }
+      
+      // Only include candidates with decent similarity (at least some overlap)
+      if (baseScore >= 40) {
+        candidates.push({
+          doc,
+          otherUser,
+          otherTags,
+          tagOverlap,
+          baseScore: Math.min(95, baseScore) // Cap at 95, let AI push to 100
+        });
+      }
+    });
+    
+    console.log(`📊 Found ${candidates.length} potential candidates for AI analysis`);
+    
+    // Second pass: Use AI to score compatibility (or basic scoring if AI unavailable)
+    const aiService = window.AI_SERVICE || (typeof AI_SERVICE !== 'undefined' ? AI_SERVICE : null);
+    const useAI = AI_ENABLED && aiService && (aiService.apiKey || aiService.proxyUrl);
+    
+    if (useAI) {
+      console.log("🤖 Using AI to analyze compatibility...");
+    } else {
+      console.log("⚠️ AI not available - using basic tag-based matching");
+    }
+    
+    // Process candidates (limit to top 10 for AI to avoid rate limits)
+    const candidatesToProcess = candidates.slice(0, useAI ? 10 : 20);
+    
+    for (const candidate of candidatesToProcess) {
+      const { doc, otherUser, otherTags, tagOverlap, baseScore } = candidate;
+      let finalScore = baseScore;
+      let aiInsights = null;
+      
+      // Try AI scoring if available
+      if (useAI) {
+        try {
+          console.log(`🤖 AI analyzing: ${otherUser.displayName || otherUser.email}`);
+          aiInsights = await aiService.generateMatchScore(userProfile, {
+            title: `${otherUser.displayName || 'User'}'s Profile`,
+            summary: otherUser.bio || "Looking for connections",
+            tags: otherUser.aboutTags || [],
+            details: [
+              otherUser.bio || "",
+              `Looking for: ${(otherUser.lookingTags || []).join(", ")}`,
+              otherUser.naturalLanguagePreferences || ""
+            ],
+          }, topic, preferenceTokens.join(", "));
+          
+          if (aiInsights && aiInsights.compatibility_score) {
+            // Use AI score directly (it's more accurate), but ensure it's reasonable
+            const aiScore = Math.max(0, Math.min(100, aiInsights.compatibility_score));
+            // If AI score is very different from base, trust AI more
+            // If similar, blend them
+            const scoreDiff = Math.abs(aiScore - baseScore);
+            if (scoreDiff > 20) {
+              // AI strongly disagrees - trust AI (90% weight)
+              finalScore = Math.round(baseScore * 0.1 + aiScore * 0.9);
+            } else {
+              // AI agrees - use AI score directly
+              finalScore = aiScore;
+            }
+            console.log(`🤖 AI score: ${baseScore} → ${finalScore} (AI: ${aiScore})`);
+          } else {
+            // AI didn't return a score - use base score
+            finalScore = baseScore;
+          }
+        } catch (aiError) {
+          // If AI fails, use basic score
+          if (aiError.message?.includes('429') || aiError.message?.includes('rate limit')) {
+            console.warn(`⚠️ AI rate limited for ${otherUser.displayName || otherUser.email}, using basic score`);
+          } else {
+            console.warn(`⚠️ AI error: ${aiError.message}, using basic score`);
+          }
+          // Continue with basic score
+        }
+      }
+      
+      // Only show matches with meaningful similarity
+      // Higher threshold: 65% minimum for real users (very different users shouldn't show)
+      if (finalScore >= 65) {
+        console.log(`✅ Adding match: ${otherUser.displayName || otherUser.email} (score: ${finalScore})`);
+        potentialMatches.push({
+          id: `user-${doc.id}`,
+          userId: doc.id,
+          topic,
+          title: `${otherUser.displayName || otherUser.email?.split('@')[0] || 'User'}'s ${topic} Group`,
+          summary: aiInsights?.match_reasons?.[0] || otherUser.bio || `Join ${otherUser.displayName || 'this user'}'s ${topic.toLowerCase()} group`,
+          tags: otherUser.aboutTags || [],
+          details: [
+            aiInsights?.match_reasons?.[1] || `Matched based on: ${tagOverlap > 0 ? tagOverlap + ' shared interests' : 'AI analysis'}`,
+            otherUser.bio || "Looking for connections",
+          ],
+          members: [
+            `${otherUser.displayName || otherUser.email?.split('@')[0] || 'User'} · ${topic.toLowerCase()} enthusiast`,
+          ],
+          conversationStarters: aiInsights?.conversation_starters || [
+            `Hey! I saw we both like ${topic.toLowerCase()}`,
+            `Want to connect about ${topic.toLowerCase()}?`,
+          ],
+          score: finalScore,
+          isRealUser: true,
+          userIds: [doc.id, currentUser.uid],
+          aiInsights: aiInsights, // Store for display
+          aiExplanation: aiInsights?.match_reasons?.join(" ") || null,
+        });
+      }
+    }
+
+    // AI scoring is now done in the loop above - no need for separate enhancement
+
+    console.log(`🎯 Returning ${potentialMatches.length} potential matches`);
+    return potentialMatches.sort((a, b) => b.score - a.score);
+  } catch (error) {
+    console.error("❌ Error finding real user matches:", error);
+    return [];
+  }
+}
+
+async function createMatchGroup(match, userProfile) {
+  if (!FIREBASE_ENABLED || !currentUser || !firestoreDb || !match.userIds) {
+    return null;
+  }
+
+  try {
+    // Check if match group already exists
+    const existingMatch = await firestoreDb
+      .collection("matches")
+      .where("members", "array-contains", currentUser.uid)
+      .where("topic", "==", match.topic)
+      .where("userIds", "array-contains-any", match.userIds)
+      .limit(1)
+      .get();
+
+    if (!existingMatch.empty) {
+      return existingMatch.docs[0].id; // Return existing match ID
+    }
+
+    // Create new match group
+    const matchData = {
+      topic: match.topic,
+      title: match.title,
+      summary: match.summary,
+      tags: match.tags || [],
+      members: match.members || [],
+      userIds: match.userIds,
+      conversationStarters: match.conversationStarters || [],
+      messages: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const matchRef = await firestoreDb.collection("matches").add(matchData);
+    return matchRef.id;
+  } catch (error) {
+    console.error("Error creating match group:", error);
+    return null;
+  }
 }
 
 /* Shared utilities */
-function loadProfile() {
+async function loadProfile() {
+  // Try Firestore first if user is logged in
+  if (FIREBASE_ENABLED && currentUser && firestoreDb) {
+    try {
+      const userDoc = await firestoreDb.collection("users").doc(currentUser.uid).get();
+      if (userDoc.exists) {
+        const profileData = userDoc.data();
+        const mergedProfile = { ...defaultProfile, ...profileData };
+        // Cache in localStorage
+        localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(mergedProfile));
+        return mergedProfile;
+      }
+    } catch (error) {
+      console.error("Error loading profile from Firestore:", error);
+    }
+  }
+  
+  // Fallback to localStorage
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.profile) || "{}");
     return { ...defaultProfile, ...stored };
@@ -1914,8 +2598,22 @@ function loadProfile() {
   }
 }
 
-function saveProfile(profile) {
+async function saveProfile(profile) {
+  // Save to localStorage immediately
   localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(profile));
+  
+  // Save to Firestore if user is logged in
+  if (FIREBASE_ENABLED && currentUser && firestoreDb) {
+    try {
+      await firestoreDb.collection("users").doc(currentUser.uid).set({
+        ...profile,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      console.log("Profile saved to Firestore");
+    } catch (error) {
+      console.error("Error saving profile to Firestore:", error);
+    }
+  }
 }
 
 function setInputValue(id, value) {
@@ -1929,10 +2627,59 @@ function getValue(id) {
 
 function setStatusMessage(id, message) {
   const target = document.getElementById(id);
-  if (target) target.textContent = message;
+  if (!target) return;
+  target.textContent = message || "";
 }
 
-function loadSavedMatches() {
+async function loadSavedMatches() {
+  // Load from Firestore if user is logged in
+  if (FIREBASE_ENABLED && currentUser && firestoreDb) {
+    try {
+      const matchesSnapshot = await firestoreDb
+        .collection("matches")
+        .where("userIds", "array-contains", currentUser.uid)
+        .orderBy("updatedAt", "desc")
+        .get();
+
+      const firestoreMatches = [];
+      for (const doc of matchesSnapshot.docs) {
+        const matchData = doc.data();
+        // Load messages
+        const messagesSnapshot = await doc.ref.collection("messages")
+          .orderBy("timestamp", "asc")
+          .get();
+        
+        const messages = messagesSnapshot.docs.map(msgDoc => {
+          const msgData = msgDoc.data();
+          return {
+            author: msgData.author || "Unknown",
+            role: msgData.authorId === currentUser.uid ? "me" : "them",
+            text: msgData.text || "",
+            timestamp: msgData.timestamp?.toDate?.() || new Date(),
+          };
+        });
+
+        firestoreMatches.push({
+          id: `match-${doc.id}`,
+          ...matchData,
+          messages,
+        });
+      }
+
+      // Also load localStorage matches (for backward compatibility)
+      const localMatches = JSON.parse(localStorage.getItem(STORAGE_KEYS.savedMatches) || "[]");
+      const allMatches = [...firestoreMatches, ...localMatches];
+      
+      // Cache in localStorage
+      localStorage.setItem(STORAGE_KEYS.savedMatches, JSON.stringify(allMatches));
+      return allMatches;
+    } catch (error) {
+      console.error("Error loading matches from Firestore:", error);
+      // Fall through to localStorage
+    }
+  }
+
+  // Fallback to localStorage
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.savedMatches) || "[]");
   } catch {
@@ -1940,12 +2687,16 @@ function loadSavedMatches() {
   }
 }
 
-function saveMatches(matches) {
+async function saveMatches(matches) {
+  // Save to localStorage
   localStorage.setItem(STORAGE_KEYS.savedMatches, JSON.stringify(matches));
+  
+  // Note: Firestore matches are saved individually when created/updated
+  // This function mainly handles localStorage matches
 }
 
-function saveMatch(match) {
-  const matches = loadSavedMatches();
+async function saveMatch(match) {
+  const matches = await loadSavedMatches();
   if (matches.some((item) => item.id === match.id)) return false;
   matches.push({
     id: match.id,
@@ -1957,7 +2708,7 @@ function saveMatch(match) {
     conversationStarters: [...(match.conversationStarters || [])],
     messages: (match.messages || []).map((msg) => ({ ...msg })),
   });
-  saveMatches(matches);
+  await saveMatches(matches);
   return true;
 }
 
@@ -1988,12 +2739,6 @@ function prettify(text) {
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
     .join(" ")
     .trim();
-}
-
-function setStatusMessage(id, message) {
-  const target = document.getElementById(id);
-  if (!target) return;
-  target.textContent = message;
 }
 
 // AI Feature Setup Functions
@@ -2042,9 +2787,13 @@ function setupAITextAnalysis() {
         setStatusMessage("profileStatus", "Please enter some text to analyze.");
         return;
       }
-      if (!aiService || !aiService.apiKey) {
-        setStatusMessage("profileStatus", "AI service not configured. Please set your Gemini API key.");
-        showAPIKeyPrompt();
+      // Check for proxy URL (preferred) or API key
+      if (!aiService || (!aiService.apiKey && !aiService.proxyUrl)) {
+        setStatusMessage("profileStatus", "AI service not configured. Using proxy or set your Gemini API key.");
+        // Don't show prompt if proxy is available
+        if (!aiService.proxyUrl) {
+          showAPIKeyPrompt();
+        }
         return;
       }
       analyzeBtn.disabled = true;
@@ -2060,8 +2809,12 @@ function setupAITextAnalysis() {
           setStatusMessage("profileStatus", `AI extracted ${analysis.extracted_tags.length} tags from your text! ✨`);
         }
       } catch (error) {
-        setStatusMessage("profileStatus", "AI analysis failed. Check your Gemini API key.");
-        console.error(error);
+        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+          setStatusMessage("profileStatus", "AI is rate limited. Try again in a moment.");
+        } else {
+          setStatusMessage("profileStatus", "AI analysis failed. Check console for details.");
+        }
+        console.error("AI analysis error:", error);
       } finally {
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = "Analyze with AI";

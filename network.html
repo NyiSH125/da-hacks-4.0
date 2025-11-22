@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="vibelink-gemini-proxy" content="http://localhost:3001/api/gemini" />
+    <!-- Firebase Configuration -->
+    <meta name="firebase-api-key" content="AIzaSyD5mF7uuRMP3gTxv-Jkr3zCtJ2CsywRK1I" />
+    <meta name="firebase-auth-domain" content="dahack4.firebaseapp.com" />
+    <meta name="firebase-project-id" content="dahack4" />
+    <meta name="firebase-storage-bucket" content="dahack4.firebasestorage.app" />
+    <meta name="firebase-messaging-sender-id" content="522516531932" />
+    <meta name="firebase-app-id" content="1:522516531932:web:07ebad286d7d1e276a8219" />
     <title>VibeLink · Network</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +19,10 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   </head>
   <body data-page="network">
     <header class="site-nav">
@@ -61,6 +72,7 @@
       </div>
     </footer>
 
+    <script src="firebase-config.js"></script>
     <script src="ai-service.js"></script>
     <script src="app.js" defer></script>
   </body>

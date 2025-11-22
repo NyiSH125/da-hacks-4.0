@@ -287,31 +287,38 @@ Return ONLY valid JSON, no additional text.`;
    * Generate intelligent match scores using AI
    */
   async generateMatchScore(userProfile, matchProfile, category, preference) {
-    const prompt = `You are a matching algorithm for a social connection app. Calculate compatibility between a user and a potential match.
+    const prompt = `You are an expert matching algorithm. Calculate compatibility between two users.
 
-User Profile:
-- Bio: ${userProfile.bio || "Not provided"}
+USER 1:
+- Bio: "${userProfile.bio || "Not provided"}"
 - About-Me Tags: ${userProfile.aboutTags?.join(", ") || "None"}
 - Looking-For Tags: ${userProfile.lookingTags?.join(", ") || "None"}
-- Categories: ${userProfile.categories?.join(", ") || "None"}
+- Preferences: "${userProfile.naturalLanguagePreferences || "None"}"
 
-Match Profile:
-- Title: ${matchProfile.title}
-- Summary: ${matchProfile.summary}
-- Tags: ${matchProfile.tags?.join(", ") || "None"}
-- Details: ${matchProfile.details?.join("; ") || "None"}
-- Members: ${matchProfile.members?.join(", ") || "None"}
+USER 2:
+- Bio: "${matchProfile.summary || matchProfile.details?.[0] || "Not provided"}"
+- About-Me Tags: ${matchProfile.tags?.join(", ") || "None"}
+- Looking-For: ${matchProfile.details?.find(d => d.includes("Looking for"))?.replace("Looking for: ", "") || "None"}
 
-Category: ${category}
-Preference: ${preference}
+Topic: ${category}
+Preferences: ${preference}
 
-Analyze compatibility and return JSON with:
-1. compatibility_score: Number 0-100
-2. match_reasons: Array of 3-5 reasons why they're compatible
-3. potential_concerns: Array of any potential issues or mismatches
-4. conversation_starters: Array of 2-3 suggested conversation starters
+SCORING RULES (BE ACCURATE):
+- 90-100%: Very similar (same tags, similar bio/interests, matching preferences)
+- 75-89%: Good match (shared interests, compatible)
+- 60-74%: Decent match (some overlap)
+- 40-59%: Weak match (minimal similarity)
+- 0-39%: Poor match (very different)
 
-Return ONLY valid JSON, no additional text.`;
+Return JSON:
+{
+  "compatibility_score": 0-100,
+  "match_reasons": ["reason1", "reason2", ...],
+  "potential_concerns": ["concern1", ...],
+  "conversation_starters": ["starter1", "starter2", ...]
+}
+
+Return ONLY valid JSON, no text.`;
 
     try {
       const response = await this.callAPI([
